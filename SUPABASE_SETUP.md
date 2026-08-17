@@ -26,16 +26,21 @@ window.SUPABASE_CONFIG = {
 
 Klucz publishable/anon jest przeznaczony do aplikacji przeglądarkowych i może być publiczny przy poprawnie włączonym RLS. Nigdy nie umieszczaj na stronie klucza `service_role`, secret key ani hasła do bazy.
 
-## 3. Ustaw adres GitHub Pages
+## 3. Ustaw adres opublikowanej strony
 
 W **Authentication → URL Configuration** ustaw:
 
-- **Site URL**: docelowy adres GitHub Pages, np. `https://twoj-login.github.io/nazwa-repozytorium/`
+- **Site URL**: docelowy adres Cloudflare Pages, np. `https://mikroekonomia.pages.dev/`
+- **Redirect URL**: `https://mikroekonomia.pages.dev/**`
 - opcjonalny lokalny **Redirect URL** do testów: `http://127.0.0.1:4173/`
 
 W **Authentication → Providers → Email** pozostaw włączone logowanie e-mail/hasło. Domyślnie nowy uczeń potwierdza adres przez wiadomość e-mail; to bezpieczniejsza konfiguracja dla klasy.
 
-## 4. Opublikuj
+## 4. Po aktualizacji funkcji konta
+
+Po dodaniu dziennego boosta lub usuwania konta ponownie uruchom **cały** plik `supabase-setup.sql` w **SQL Editor → Run**. Skrypt jest przygotowany do bezpiecznego ponownego uruchomienia: zachowuje istniejące konta, punkty i postęp, a tylko dodaje brakujące kolumny oraz funkcję usuwania własnego konta.
+
+## 5. Opublikuj
 
 Dodaj do repozytorium wszystkie pliki strony, w tym `supabase-config.js`, `supabase-setup.sql` i `SUPABASE_SETUP.md`, a następnie opublikuj GitHub Pages. Po wejściu na stronę uczniowie mogą utworzyć konto, potwierdzić e-mail, zalogować się i zobaczyć ranking.
 
@@ -45,6 +50,7 @@ Dodaj do repozytorium wszystkie pliki strony, w tym `supabase-config.js`, `supab
 - opanowane i oznaczone gwiazdką fiszki,
 - liczba ukończonych quizów i testów,
 - naliczony aktywny czas nauki.
+- datę i czas aktywacji dziennego boosta punktów.
 
 Przy pierwszym logowaniu lokalny postęp z danego urządzenia jest łączony z kontem. Kolejne logowania pobierają go na innych urządzeniach. Wylogowanie usuwa lokalną kopię postępu z bieżącej przeglądarki, aby nie pokazać jej następnej osobie.
 

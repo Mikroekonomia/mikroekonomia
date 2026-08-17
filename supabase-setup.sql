@@ -18,8 +18,14 @@ create table if not exists public.study_progress (
   completed_tests integer not null default 0 check (completed_tests >= 0),
   study_seconds double precision not null default 0 check (study_seconds >= 0),
   awarded_study_blocks integer not null default 0 check (awarded_study_blocks >= 0),
+  boost_activated_on text,
+  boost_ends_at timestamptz,
   updated_at timestamptz not null default now()
 );
+
+-- Bezpieczna aktualizacja istniejącej tabeli po dodaniu dziennego boosta.
+alter table public.study_progress add column if not exists boost_activated_on text;
+alter table public.study_progress add column if not exists boost_ends_at timestamptz;
 
 create index if not exists profiles_points_idx on public.profiles (points desc, updated_at asc);
 
@@ -117,3 +123,23 @@ on conflict (id) do nothing;
 insert into public.study_progress (user_id)
 select id from auth.users
 on conflict (user_id) do nothing;
+
+-- Użytkownik może usunąć wyłącznie własne konto. Powiązane rekordy znikają przez ON DELETE CASCADE.
+create or replace function public.delete_own_account()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  requesting_user uuid := (select auth.uid());
+begin
+  if requesting_user is null then
+    raise exception 'Authentication required';
+  end if;
+  delete from auth.users where id = requesting_user;
+end;
+$$;
+
+revoke all on function public.delete_own_account() from public;
+grant execute on function public.delete_own_account() to authenticated;
