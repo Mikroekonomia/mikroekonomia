@@ -84,6 +84,7 @@
                 <select id="flashcardChapter" aria-label="Filtruj fiszki według rozdziału"></select>
               </label>
               <button class="starred-filter" id="starredFilter" aria-pressed="false"><span aria-hidden="true">★</span> Tylko trudne <b id="starredCount">0</b></button>
+              <button class="focus-toggle" type="button" data-focus="flashcards" aria-label="Włącz tryb pełnoekranowy fiszek">⛶ <span>Tryb skupienia</span></button>
             </div>
           </div>
           <p class="study-pool" id="flashcardPoolCount"></p>
@@ -115,7 +116,10 @@
               <p class="eyebrow">QUIZ Z ZAGADNIEŃ KSIĄŻKOWYCH</p>
               <h2>Quiz</h2>
             </div>
-            <button class="text-button" id="restartQuiz">Nowy zestaw</button>
+            <div class="heading-actions">
+              <button class="focus-toggle" type="button" data-focus="quiz" aria-label="Włącz tryb pełnoekranowy quizu">⛶ <span>Tryb skupienia</span></button>
+              <button class="text-button" id="restartQuiz">Nowy zestaw</button>
+            </div>
           </div>
           <div class="quiz-settings">
             <label class="compact-select">Rozdział
@@ -358,6 +362,13 @@
           <div class="progress-track" aria-hidden="true"><i id="studyTimerBar"></i></div>
           <small>+20 pkt co 15 minut na widocznej karcie strony</small>
         </section>
+        <section class="boost-card" aria-label="Dzienny boost punktów">
+          <div>
+            <span class="boost-icon" aria-hidden="true">×2</span>
+            <div><strong>Dzienny boost</strong><small id="boostStatus">Dostępny raz dziennie przez 30 minut</small></div>
+          </div>
+          <button class="boost-button" id="activateBoost" type="button">Aktywuj ×2</button>
+        </section>
         <div class="rank-ladder" id="rankLadder"></div>
       </aside>
       <button class="points-backdrop" id="pointsBackdrop" hidden aria-label="Zamknij menu punktów"></button>
@@ -399,13 +410,17 @@
           <p id="profileSyncStatus">Postęp jest synchronizowany.</p>
           <button class="primary-button" id="profileLeaderboard" type="button">Zobacz ranking</button>
           <button class="text-button" id="logoutButton" type="button">Wyloguj się</button>
+          <section class="danger-zone">
+            <strong>Usuń konto</strong>
+            <p>Ta operacja trwale usunie konto, punkty i cały zapisany postęp.</p>
+            <label>Wpisz <b>USUŃ</b>, aby potwierdzić<input id="deleteAccountConfirmation" type="text" autocomplete="off" /></label>
+            <button class="delete-account-button" id="deleteAccountButton" type="button" disabled>Usuń konto na stałe</button>
+          </section>
         </div>
       </section>
 
-      <div class="points-toast" id="pointsToast" hidden aria-live="polite">
-        <span>+<strong id="pointsToastValue">0</strong></span>
-        <p id="pointsToastLabel">punkty</p>
-      </div>
+      <button class="focus-exit" id="focusExit" type="button" hidden>× Zakończ tryb skupienia</button>
+      <div class="points-announcer sr-only" id="pointsAnnouncer" aria-live="polite"></div>
 
       <div class="rank-celebration" id="rankCelebration" hidden role="status" aria-live="polite">
         <div class="celebration-burst" aria-hidden="true"></div>

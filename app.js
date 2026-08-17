@@ -1,9 +1,10 @@
 const $ = selector => document.querySelector(selector);
 
-const storageKey = 'mankiw-taylor-study-progress-v12';
-const legacyStorageKeys = ['mankiw-taylor-study-progress-v11', 'mankiw-taylor-study-progress-v9', 'mankiw-taylor-study-progress-v7', 'mankiw-taylor-study-progress-v5'];
+const storageKey = 'mankiw-taylor-study-progress-v13';
+const legacyStorageKeys = ['mankiw-taylor-study-progress-v12', 'mankiw-taylor-study-progress-v11', 'mankiw-taylor-study-progress-v9', 'mankiw-taylor-study-progress-v7', 'mankiw-taylor-study-progress-v5'];
 const studyRewardSeconds = 15 * 60;
 const studyRewardPoints = 20;
+const boostDurationMs = 30 * 60 * 1000;
 
 const ranks = [
   { name: 'Początkujący', threshold: 0, emblem: 'I' },
@@ -47,7 +48,9 @@ const blankProgress = () => ({
   completedQuizzes: 0,
   completedTests: 0,
   studySeconds: 0,
-  awardedStudyBlocks: 0
+  awardedStudyBlocks: 0,
+  boostActivatedOn: '',
+  boostEndsAt: ''
 });
 
 const normalizeProgress = value => {
@@ -60,7 +63,9 @@ const normalizeProgress = value => {
     completedQuizzes: Number.isFinite(parsed.completedQuizzes) ? Math.max(0, Math.floor(parsed.completedQuizzes)) : 0,
     completedTests: Number.isFinite(parsed.completedTests) ? Math.max(0, Math.floor(parsed.completedTests)) : 0,
     studySeconds: Number.isFinite(parsed.studySeconds) ? Math.max(0, parsed.studySeconds) : 0,
-    awardedStudyBlocks: Number.isFinite(parsed.awardedStudyBlocks) ? Math.max(0, Math.floor(parsed.awardedStudyBlocks)) : 0
+    awardedStudyBlocks: Number.isFinite(parsed.awardedStudyBlocks) ? Math.max(0, Math.floor(parsed.awardedStudyBlocks)) : 0,
+    boostActivatedOn: typeof parsed.boostActivatedOn === 'string' ? parsed.boostActivatedOn : '',
+    boostEndsAt: typeof parsed.boostEndsAt === 'string' ? parsed.boostEndsAt : ''
   };
 };
 
@@ -75,7 +80,9 @@ const mergeProgress = (localValue, cloudValue) => {
     completedQuizzes: Math.max(local.completedQuizzes, cloud.completedQuizzes),
     completedTests: Math.max(local.completedTests, cloud.completedTests),
     studySeconds: Math.max(local.studySeconds, cloud.studySeconds),
-    awardedStudyBlocks: Math.max(local.awardedStudyBlocks, cloud.awardedStudyBlocks)
+    awardedStudyBlocks: Math.max(local.awardedStudyBlocks, cloud.awardedStudyBlocks),
+    boostActivatedOn: local.boostActivatedOn > cloud.boostActivatedOn ? local.boostActivatedOn : cloud.boostActivatedOn,
+    boostEndsAt: new Date(local.boostEndsAt || 0) > new Date(cloud.boostEndsAt || 0) ? local.boostEndsAt : cloud.boostEndsAt
   };
 };
 
@@ -325,19 +332,30 @@ function rankIndexForPoints(points) {
   return ranks.reduce((current, rank, index) => points >= rank.threshold ? index : current, 0);
 }
 
-function showPointsAnimation(amount, label) {
+function localDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isBoostActive() {
+  return progress.boostActivatedOn === localDateKey() && new Date(progress.boostEndsAt).getTime() > Date.now();
+}
+
+function showPointsAnimation(amount, label, sourceElement) {
   if (!amount) return;
-  const toast = $('#pointsToast');
-  $('#pointsToastValue').textContent = amount;
-  $('#pointsToastLabel').textContent = label;
-  toast.hidden = false;
-  toast.classList.remove('animate');
-  requestAnimationFrame(() => toast.classList.add('animate'));
-  window.clearTimeout(showPointsAnimation.timer);
-  showPointsAnimation.timer = window.setTimeout(() => {
-    toast.classList.remove('animate');
-    toast.hidden = true;
-  }, 2200);
+  const anchor = sourceElement instanceof Element ? sourceElement : $('#pointsMenuButton');
+  const rect = anchor?.getBoundingClientRect();
+  if (!rect) return;
+  const bubble = document.createElement('div');
+  bubble.className = 'points-burst';
+  bubble.innerHTML = `<strong>+${amount}</strong><span>${escapeHtml(label)}</span>`;
+  bubble.style.left = `${Math.min(window.innerWidth - 92, Math.max(10, rect.left + rect.width / 2 - 38))}px`;
+  bubble.style.top = `${Math.max(12, rect.top + Math.min(rect.height * .5, 70))}px`;
+  document.body.appendChild(bubble);
+  $('#pointsAnnouncer').textContent = `Zdobyto ${amount} punktów: ${label}`;
+  bubble.addEventListener('animationend', () => bubble.remove(), { once: true });
 }
 
 function showRankCelebration(rank) {
@@ -347,16 +365,18 @@ function showRankCelebration(rank) {
   requestAnimationFrame(() => $('#rankCelebration').classList.add('visible'));
 }
 
-function awardPoints(amount, label) {
-  if (amount <= 0) return;
+function awardPoints(amount, label, sourceElement) {
+  if (amount <= 0) return 0;
+  const awardedAmount = isBoostActive() ? amount * 2 : amount;
   const previousRankIndex = rankIndexForPoints(progress.points);
-  progress.points += amount;
+  progress.points += awardedAmount;
   const currentRankIndex = rankIndexForPoints(progress.points);
   saveProgress();
-  showPointsAnimation(amount, label);
+  showPointsAnimation(awardedAmount, isBoostActive() ? `${label} · boost ×2` : label, sourceElement);
   if (currentRankIndex > previousRankIndex) {
     window.setTimeout(() => showRankCelebration(ranks[currentRankIndex]), 650);
   }
+  return awardedAmount;
 }
 
 function updateProgress() {
@@ -395,6 +415,7 @@ function updateProgress() {
   $('#rankProgressText').textContent = nextRank ? `${progress.points} / ${nextRank.threshold}` : `${progress.points} pkt`;
   $('#menuNextRank').textContent = nextRank ? `Następna ranga: ${nextRank.name}` : 'Zdobyto najwyższą rangę';
   $('#menuRankProgress').textContent = nextRank ? `${progress.points} / ${nextRank.threshold}` : `${progress.points} pkt`;
+  updateBoostUi();
 
   $('#rankLadder').innerHTML = ranks.map((item, index) => `
     <div class="rank-step ${index <= rankIndex ? 'reached' : ''} ${index === rankIndex ? 'current' : ''}">
@@ -415,7 +436,9 @@ function cloudRowToProgress(row) {
     completedQuizzes: row.completed_quizzes,
     completedTests: row.completed_tests,
     studySeconds: row.study_seconds,
-    awardedStudyBlocks: row.awarded_study_blocks
+    awardedStudyBlocks: row.awarded_study_blocks,
+    boostActivatedOn: row.boost_activated_on,
+    boostEndsAt: row.boost_ends_at
   });
 }
 
@@ -430,6 +453,8 @@ function progressToCloudRow() {
     completed_tests: progress.completedTests,
     study_seconds: progress.studySeconds,
     awarded_study_blocks: progress.awardedStudyBlocks,
+    boost_activated_on: progress.boostActivatedOn || null,
+    boost_ends_at: progress.boostEndsAt || null,
     updated_at: new Date().toISOString()
   };
 }
@@ -485,6 +510,8 @@ function updateAccountUi() {
   $('#authSignedOut').hidden = signedIn || !supabaseConfigured;
   $('#authSignedIn').hidden = !signedIn;
   $('#authTitle').textContent = signedIn ? 'Twoje konto' : 'Zaloguj się';
+  $('#deleteAccountConfirmation').value = '';
+  $('#deleteAccountButton').disabled = true;
   if (signedIn) {
     $('#profileName').textContent = name;
     $('#profileEmail').textContent = currentUser.email || '';
@@ -579,7 +606,7 @@ function renderLeaderboardRows(items = []) {
     const name = String(item.display_name || 'Uczeń').slice(0, 30);
     return `
       <article class="leaderboard-row ${item.id === currentUser?.id ? 'current-user' : ''} ${index < 3 ? `podium podium-${index + 1}` : ''}">
-        <span class="leaderboard-position">${index + 1}</span>
+        <span class="leaderboard-position" ${index === 0 ? 'title="Lider rankingu"' : ''}>${index === 0 ? '<i aria-hidden="true">♛</i><b>1</b>' : index + 1}</span>
         <span class="leaderboard-avatar" aria-hidden="true">${escapeHtml(initialsForName(name))}</span>
         <div><strong>${escapeHtml(name)}</strong><small>${escapeHtml(rank.name)}</small></div>
         <b>${points} pkt</b>
@@ -678,6 +705,41 @@ function updateStudyTimer() {
   $('#studyTimerBar').style.width = `${Math.min(100, (elapsedInBlock / studyRewardSeconds) * 100)}%`;
 }
 
+function updateBoostUi() {
+  const button = $('#activateBoost');
+  const status = $('#boostStatus');
+  if (!button || !status) return;
+  const active = isBoostActive();
+  const usedToday = progress.boostActivatedOn === localDateKey();
+  if (active) {
+    const remaining = Math.max(0, new Date(progress.boostEndsAt).getTime() - Date.now());
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    status.textContent = `Aktywny jeszcze ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    button.textContent = 'Boost aktywny';
+    button.disabled = true;
+    document.body.classList.add('boost-active');
+  } else if (usedToday) {
+    status.textContent = 'Dzisiejszy boost został wykorzystany';
+    button.textContent = 'Wróć jutro';
+    button.disabled = true;
+    document.body.classList.remove('boost-active');
+  } else {
+    status.textContent = 'Dostępny raz dziennie przez 30 minut';
+    button.textContent = 'Aktywuj ×2';
+    button.disabled = false;
+    document.body.classList.remove('boost-active');
+  }
+}
+
+function activateDailyBoost() {
+  if (progress.boostActivatedOn === localDateKey()) return;
+  progress.boostActivatedOn = localDateKey();
+  progress.boostEndsAt = new Date(Date.now() + boostDurationMs).toISOString();
+  saveProgress();
+  updateBoostUi();
+}
+
 function tickStudyTime() {
   const now = Date.now();
   const elapsed = Math.min(2, Math.max(0, (now - lastStudyTick) / 1000));
@@ -691,13 +753,14 @@ function tickStudyTime() {
     const newBlocks = earnedBlocks - progress.awardedStudyBlocks;
     progress.awardedStudyBlocks = earnedBlocks;
     unsavedStudySeconds = 0;
-    awardPoints(newBlocks * studyRewardPoints, '15 minut aktywnej nauki');
+    awardPoints(newBlocks * studyRewardPoints, '15 minut aktywnej nauki', $('#pointsMenuButton'));
   } else if (unsavedStudySeconds >= 15) {
     persistLocalProgress();
     scheduleCloudSync();
     unsavedStudySeconds = 0;
   }
   updateStudyTimer();
+  updateBoostUi();
 }
 
 function persistStudyTime() {
@@ -708,6 +771,7 @@ function persistStudyTime() {
 }
 
 function switchMode(mode) {
+  if (document.body.classList.contains('focus-mode')) exitFocusMode();
   const secondaryModes = ['test', 'answers', 'scope', 'math', 'leaderboard'];
   document.querySelectorAll('.mode-tab').forEach(tab => {
     tab.classList.toggle('active', tab.dataset.mode === mode || (tab.dataset.mode === 'more' && secondaryModes.includes(mode)));
@@ -717,6 +781,22 @@ function switchMode(mode) {
   });
   if (mode === 'leaderboard') loadLeaderboard();
   document.getElementById(mode)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function enterFocusMode(panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  document.querySelectorAll('.study-panel').forEach(item => item.classList.toggle('focus-active', item === panel));
+  document.body.classList.add('focus-mode');
+  $('#focusExit').hidden = false;
+  document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+function exitFocusMode() {
+  document.body.classList.remove('focus-mode');
+  document.querySelectorAll('.study-panel').forEach(item => item.classList.remove('focus-active'));
+  $('#focusExit').hidden = true;
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
 }
 
 function filteredCards() {
@@ -790,7 +870,7 @@ function recall(type) {
   if (type === 'again') {
     progress.mastered = progress.mastered.filter(id => id !== card.id);
   }
-  if (earnedPoints) awardPoints(5, 'nowa opanowana fiszka');
+  if (earnedPoints) awardPoints(5, 'opanowana fiszka', $('#flashcard'));
   else saveProgress();
   navigateCard(1);
 }
@@ -894,19 +974,19 @@ function renderQuestion() {
   $('#quizFeedback').className = 'quiz-feedback';
   $('#nextQuestion').hidden = true;
   document.querySelectorAll('.answer').forEach(button => {
-    button.addEventListener('click', () => answerQuestion(button.dataset.cardId));
+    button.addEventListener('click', () => answerQuestion(button.dataset.cardId, button));
   });
 }
 
-function answerQuestion(cardId) {
+function answerQuestion(cardId, selectedButton) {
   if (quizAnswered) return;
   quizAnswered = true;
   const item = quizSet[quizIndex];
   const correct = cardId === item.id;
   if (correct) {
     quizScore += 1;
-    quizBasePoints += 5;
-    awardPoints(5, 'poprawna odpowiedź');
+    const awarded = awardPoints(5, 'poprawna odpowiedź', selectedButton);
+    quizBasePoints += awarded;
   }
 
   $('#quizCard').classList.remove('answer-correct', 'answer-wrong');
@@ -919,7 +999,7 @@ function answerQuestion(cardId) {
   });
 
   $('#quizFeedback').textContent = correct
-    ? 'Dobrze · +5 pkt'
+    ? `Dobrze · +${isBoostActive() ? 10 : 5} pkt`
     : `Poprawna: „${item.front}”.`;
   $('#quizFeedback').classList.add(correct ? 'correct' : 'wrong');
   $('#nextQuestion').hidden = false;
@@ -949,13 +1029,15 @@ function showResult() {
     quizRewardGranted = true;
     const resultRatio = quizScore / quizSet.length;
     const performanceBonus = resultRatio === 1 ? 10 : resultRatio >= 0.8 ? 5 : 0;
-    const earned = quizBasePoints + performanceBonus;
     progress.completedQuizzes += 1;
+    const awardedBonus = performanceBonus
+      ? awardPoints(performanceBonus, resultRatio === 1 ? 'premia za 100%' : 'premia za wynik 80%+', $('#quizResult'))
+      : 0;
+    const earned = quizBasePoints + awardedBonus;
     $('#quizPointsEarned').textContent = earned
-      ? `${earned} pkt w tym zestawie${performanceBonus ? ` · premia +${performanceBonus}` : ''}`
+      ? `${earned} pkt w tym zestawie${awardedBonus ? ` · premia +${awardedBonus}` : ''}`
       : 'Tym razem bez punktów — spróbuj ponownie po krótkiej powtórce.';
-    if (performanceBonus) awardPoints(performanceBonus, resultRatio === 1 ? 'premia za 100%' : 'premia za wynik 80%+');
-    else saveProgress();
+    if (!performanceBonus) saveProgress();
   }
 }
 
@@ -1023,8 +1105,8 @@ function answerTest() {
   const correct = normalizedAnswer === normalizeText(item.term) || normalizedAnswer === normalizeText(item.front);
   if (correct) {
     testScore += 1;
-    testBasePoints += 5;
-    awardPoints(5, 'poprawna odpowiedź w teście');
+    const awarded = awardPoints(5, 'poprawna odpowiedź w teście', $('#testCard'));
+    testBasePoints += awarded;
   }
 
   $('#testAnswer').disabled = true;
@@ -1032,7 +1114,7 @@ function answerTest() {
   $('#showTestAnswer').disabled = true;
   $('#testCard').classList.remove('answer-correct', 'answer-wrong');
   requestAnimationFrame(() => $('#testCard').classList.add(correct ? 'answer-correct' : 'answer-wrong'));
-  $('#testFeedback').textContent = correct ? 'Dobrze · +5 pkt' : `Poprawna odpowiedź: „${item.front}”.`;
+  $('#testFeedback').textContent = correct ? `Dobrze · +${isBoostActive() ? 10 : 5} pkt` : `Poprawna odpowiedź: „${item.front}”.`;
   $('#testFeedback').className = `quiz-feedback ${correct ? 'correct' : 'wrong'}`;
   $('#nextTestQuestion').hidden = false;
 }
@@ -1075,13 +1157,15 @@ function showTestResult() {
   if (!testRewardGranted && testSet.length) {
     testRewardGranted = true;
     const performanceBonus = resultRatio === 1 ? 10 : resultRatio >= 0.8 ? 5 : 0;
-    const earned = testBasePoints + performanceBonus;
     progress.completedTests += 1;
+    const awardedBonus = performanceBonus
+      ? awardPoints(performanceBonus, resultRatio === 1 ? 'premia za test 100%' : 'premia za test 80%+', $('#testResult'))
+      : 0;
+    const earned = testBasePoints + awardedBonus;
     $('#testPointsEarned').textContent = earned
-      ? `${earned} pkt w tym teście${performanceBonus ? ` · premia +${performanceBonus}` : ''}`
+      ? `${earned} pkt w tym teście${awardedBonus ? ` · premia +${awardedBonus}` : ''}`
       : 'Tym razem bez punktów — spróbuj po krótkiej powtórce.';
-    if (performanceBonus) awardPoints(performanceBonus, resultRatio === 1 ? 'premia za test 100%' : 'premia za test 80%+');
-    else saveProgress();
+    if (!performanceBonus) saveProgress();
   }
 }
 
@@ -1558,9 +1642,38 @@ async function handleRegister(event) {
   }
 }
 
+async function handleDeleteAccount() {
+  if (!cloudClient || !currentUser || $('#deleteAccountConfirmation').value.trim() !== 'USUŃ') return;
+  if (!window.confirm('Czy na pewno chcesz bezpowrotnie usunąć konto i cały postęp?')) return;
+  const button = $('#deleteAccountButton');
+  button.disabled = true;
+  setCloudStatus('Usuwanie konta…', 'working');
+  try {
+    const { error } = await cloudClient.rpc('delete_own_account');
+    if (error) throw error;
+    progress = blankProgress();
+    localStorage.removeItem(storageKey);
+    legacyStorageKeys.forEach(key => localStorage.removeItem(key));
+    currentUser = null;
+    currentProfile = null;
+    persistLocalProgress();
+    updateProgress();
+    updateStudyTimer();
+    renderCard();
+    updateAccountUi();
+    setAuthModal(false);
+    window.alert('Konto i zapisany postęp zostały usunięte.');
+  } catch (error) {
+    console.error('Nie udało się usunąć konta:', error);
+    setCloudStatus('Nie udało się usunąć konta. Uruchom najnowszy plik supabase-setup.sql.', 'error');
+    button.disabled = false;
+  }
+}
+
 $('#pointsMenuButton').addEventListener('click', () => setPointsMenu($('#pointsMenu').hidden));
 $('#pointsMenuClose').addEventListener('click', () => setPointsMenu(false));
 $('#pointsBackdrop').addEventListener('click', () => setPointsMenu(false));
+$('#activateBoost').addEventListener('click', activateDailyBoost);
 $('#accountButton').addEventListener('click', () => setAuthModal($('#authModal').hidden));
 $('#authClose').addEventListener('click', () => setAuthModal(false));
 $('#authBackdrop').addEventListener('click', () => setAuthModal(false));
@@ -1568,6 +1681,10 @@ $('#loginTab').addEventListener('click', () => setAuthMode('login'));
 $('#registerTab').addEventListener('click', () => setAuthMode('register'));
 $('#loginForm').addEventListener('submit', handleLogin);
 $('#registerForm').addEventListener('submit', handleRegister);
+$('#deleteAccountConfirmation').addEventListener('input', event => {
+  $('#deleteAccountButton').disabled = event.target.value.trim() !== 'USUŃ';
+});
+$('#deleteAccountButton').addEventListener('click', handleDeleteAccount);
 $('#refreshLeaderboard').addEventListener('click', loadLeaderboard);
 $('#profileLeaderboard').addEventListener('click', () => {
   setAuthModal(false);
@@ -1595,10 +1712,19 @@ $('#celebrationClose').addEventListener('click', () => {
 
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
-    if (!$('#rankCelebration').hidden) $('#celebrationClose').click();
+    if (document.body.classList.contains('focus-mode')) exitFocusMode();
+    else if (!$('#rankCelebration').hidden) $('#celebrationClose').click();
     else if (!$('#authModal').hidden) setAuthModal(false);
     else if (!$('#pointsMenu').hidden) setPointsMenu(false);
   }
+});
+
+document.querySelectorAll('[data-focus]').forEach(button => {
+  button.addEventListener('click', () => enterFocusMode(button.dataset.focus));
+});
+$('#focusExit').addEventListener('click', exitFocusMode);
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && document.body.classList.contains('focus-mode')) exitFocusMode();
 });
 
 document.addEventListener('keydown', event => {
