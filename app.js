@@ -5,6 +5,25 @@ const legacyStorageKeys = ['mankiw-taylor-study-progress-v12', 'mankiw-taylor-st
 const studyRewardSeconds = 15 * 60;
 const studyRewardPoints = 20;
 const boostDurationMs = 30 * 60 * 1000;
+const notificationStorageKey = 'mankiw-taylor-notifications-v1';
+const notificationReadStorageKey = 'mankiw-taylor-notifications-read-v1';
+
+const siteUpdateNotifications = [
+  {
+    id: 'update-clean-menu-2026-08-17',
+    type: 'update',
+    title: 'Nowe, czystsze menu',
+    message: 'Nawigacja, konto, punkty i powiadomienia są teraz dostępne w jednym miejscu.',
+    createdAt: '2026-08-17T20:45:00+02:00'
+  },
+  {
+    id: 'update-study-tools-2026-08-16',
+    type: 'update',
+    title: 'Tryb skupienia i dzienny boost',
+    message: 'Fiszki i quiz mają tryb skupienia, a raz dziennie możesz włączyć mnożnik punktów ×2.',
+    createdAt: '2026-08-16T18:00:00+02:00'
+  }
+];
 
 const ranks = [
   { name: 'Początkujący', threshold: 0, emblem: 'I' },
@@ -39,6 +58,84 @@ const polishCount = (number, one, few, many) => {
   if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return `${number} ${few}`;
   return `${number} ${many}`;
 };
+
+function loadRuntimeNotifications() {
+  try {
+    const value = JSON.parse(localStorage.getItem(notificationStorageKey) || '[]');
+    return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string').slice(0, 30) : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadReadNotificationIds() {
+  try {
+    const value = JSON.parse(localStorage.getItem(notificationReadStorageKey) || '[]');
+    return new Set(Array.isArray(value) ? value.filter(item => typeof item === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function notificationDateLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const today = localDateKey();
+  if (localDateKey(date) === today) return `Dzisiaj, ${date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
+  return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+}
+
+function allNotifications() {
+  return [...runtimeNotifications, ...siteUpdateNotifications]
+    .filter((item, index, items) => items.findIndex(candidate => candidate.id === item.id) === index)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function renderNotifications() {
+  const list = $('#notificationList');
+  if (!list) return;
+  const notifications = allNotifications();
+  list.innerHTML = notifications.length ? notifications.map(item => {
+    const unread = !readNotificationIds.has(item.id);
+    return `
+      <article class="notification-item ${unread ? 'unread' : ''}">
+        <span class="notification-dot" aria-hidden="true"></span>
+        <div class="notification-copy">
+          <strong>${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.message)}</p>
+          <time datetime="${escapeHtml(item.createdAt)}">${escapeHtml(notificationDateLabel(item.createdAt))}</time>
+        </div>
+      </article>
+    `;
+  }).join('') : '<p class="notification-empty">Nie masz jeszcze żadnych powiadomień.</p>';
+
+  const unreadCount = notifications.filter(item => !readNotificationIds.has(item.id)).length;
+  ['#menuUnreadBadge', '#notificationUnreadBadge'].forEach(selector => {
+    const badge = $(selector);
+    if (!badge) return;
+    badge.hidden = unreadCount === 0;
+    badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+  });
+}
+
+function addNotification({ title, message, type = 'info' }) {
+  const notification = {
+    id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    type,
+    title,
+    message,
+    createdAt: new Date().toISOString()
+  };
+  runtimeNotifications = [notification, ...runtimeNotifications].slice(0, 30);
+  localStorage.setItem(notificationStorageKey, JSON.stringify(runtimeNotifications));
+  renderNotifications();
+}
+
+function markAllNotificationsRead() {
+  allNotifications().forEach(item => readNotificationIds.add(item.id));
+  localStorage.setItem(notificationReadStorageKey, JSON.stringify([...readNotificationIds]));
+  renderNotifications();
+}
 
 const blankProgress = () => ({
   mastered: [],
@@ -136,6 +233,8 @@ let testScore = 0;
 let testAnswered = false;
 let testRewardGranted = false;
 let testBasePoints = 0;
+let runtimeNotifications = loadRuntimeNotifications();
+let readNotificationIds = loadReadNotificationIds();
 
 const normalizeText = value => String(value)
   .toLocaleLowerCase('pl-PL')
@@ -345,7 +444,8 @@ function isBoostActive() {
 
 function showPointsAnimation(amount, label, sourceElement) {
   if (!amount) return;
-  const anchor = sourceElement instanceof Element ? sourceElement : $('#pointsMenuButton');
+  const preferredAnchor = sourceElement instanceof Element && sourceElement.getClientRects().length ? sourceElement : null;
+  const anchor = preferredAnchor || $('#appMenuButton');
   const rect = anchor?.getBoundingClientRect();
   if (!rect) return;
   const bubble = document.createElement('div');
@@ -406,6 +506,7 @@ function updateProgress() {
   $('#topPoints').textContent = progress.points;
   $('#progressPoints').textContent = `${progress.points} pkt`;
   $('#progressRank').textContent = rank.name;
+  $('#menuQuickRank').textContent = rank.name;
   $('#rankName').textContent = rank.name;
   $('#rankEmblem').textContent = rank.emblem;
   $('#menuPoints').textContent = progress.points;
@@ -506,6 +607,7 @@ function updateAccountUi() {
   $('#accountLabel').textContent = name;
   $('#accountAvatar').textContent = signedIn ? initialsForName(name) : '?';
   $('#accountButton').classList.toggle('signed-in', signedIn);
+  $('#accountMenuStatus').textContent = signedIn ? 'Konto i synchronizacja postępu' : 'Zaloguj się lub utwórz konto';
   $('#authUnavailable').hidden = supabaseConfigured;
   $('#authSignedOut').hidden = signedIn || !supabaseConfigured;
   $('#authSignedIn').hidden = !signedIn;
@@ -615,7 +717,28 @@ function renderLeaderboardRows(items = []) {
   }).join('');
 }
 
-async function loadLeaderboard() {
+function evaluateLeaderboardMovement(items = []) {
+  if (!currentUser) return;
+  const currentIndex = items.findIndex(item => item.id === currentUser.id);
+  if (currentIndex < 0) return;
+  const currentPosition = currentIndex + 1;
+  const snapshotKey = `mankiw-taylor-rank-snapshot-v1:${currentUser.id}`;
+  const previousPosition = Number(localStorage.getItem(snapshotKey));
+  if (Number.isFinite(previousPosition) && previousPosition > 0 && currentPosition > previousPosition) {
+    const personAbove = items[currentIndex - 1];
+    const name = String(personAbove?.display_name || '').trim();
+    addNotification({
+      type: 'ranking',
+      title: 'Zmiana w rankingu',
+      message: name
+        ? `${name} wyprzedza Cię w rankingu. Zajmujesz teraz ${currentPosition}. miejsce.`
+        : `Ktoś wyprzedził Cię w rankingu. Zajmujesz teraz ${currentPosition}. miejsce.`
+    });
+  }
+  localStorage.setItem(snapshotKey, String(currentPosition));
+}
+
+async function loadLeaderboard({ silent = false } = {}) {
   const notice = $('#leaderboardNotice');
   if (!supabaseConfigured) {
     notice.textContent = 'Najpierw skonfiguruj Supabase według pliku SUPABASE_SETUP.md.';
@@ -629,8 +752,10 @@ async function loadLeaderboard() {
     renderLeaderboardRows([]);
     return;
   }
-  notice.textContent = 'Pobieranie rankingu…';
-  notice.dataset.state = 'working';
+  if (!silent) {
+    notice.textContent = 'Pobieranie rankingu…';
+    notice.dataset.state = 'working';
+  }
   try {
     const { data, error } = await cloudClient
       .from('profiles')
@@ -641,6 +766,7 @@ async function loadLeaderboard() {
     if (error) throw error;
     notice.textContent = `${polishCount(data.length, 'uczestnik', 'uczestników', 'uczestników')} · aktualizacja na żywo po odświeżeniu`;
     notice.dataset.state = 'success';
+    evaluateLeaderboardMovement(data);
     renderLeaderboardRows(data);
   } catch (error) {
     console.error('Nie udało się pobrać rankingu:', error);
@@ -658,6 +784,7 @@ async function applyAuthSession(session, { initial = false } = {}) {
   if (currentUser) {
     updateAccountUi();
     if (shouldLoadProgress) await loadCloudProgress();
+    if (shouldLoadProgress) await loadLeaderboard({ silent: true });
   } else {
     currentProfile = null;
     if (previousUserId && !initial) {
@@ -753,7 +880,7 @@ function tickStudyTime() {
     const newBlocks = earnedBlocks - progress.awardedStudyBlocks;
     progress.awardedStudyBlocks = earnedBlocks;
     unsavedStudySeconds = 0;
-    awardPoints(newBlocks * studyRewardPoints, '15 minut aktywnej nauki', $('#pointsMenuButton'));
+    awardPoints(newBlocks * studyRewardPoints, '15 minut aktywnej nauki', $('#appMenuButton'));
   } else if (unsavedStudySeconds >= 15) {
     persistLocalProgress();
     scheduleCloudSync();
@@ -773,12 +900,15 @@ function persistStudyTime() {
 function switchMode(mode) {
   if (document.body.classList.contains('focus-mode')) exitFocusMode();
   const secondaryModes = ['test', 'answers', 'scope', 'math', 'leaderboard'];
-  document.querySelectorAll('.mode-tab').forEach(tab => {
-    tab.classList.toggle('active', tab.dataset.mode === mode || (tab.dataset.mode === 'more' && secondaryModes.includes(mode)));
+  const menuMode = secondaryModes.includes(mode) ? 'more' : mode;
+  document.querySelectorAll('[data-menu-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.menuMode === menuMode);
   });
   document.querySelectorAll('.study-panel').forEach(panel => {
     panel.classList.toggle('active', panel.dataset.panel === mode);
   });
+  document.body.classList.toggle('home-active', mode === 'home');
+  setAppMenu(false, { returnFocus: false });
   if (mode === 'leaderboard') loadLeaderboard();
   document.getElementById(mode)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -788,14 +918,21 @@ function enterFocusMode(panelId) {
   if (!panel) return;
   document.querySelectorAll('.study-panel').forEach(item => item.classList.toggle('focus-active', item === panel));
   document.body.classList.add('focus-mode');
-  $('#focusExit').hidden = false;
+  document.querySelectorAll('[data-focus]').forEach(button => {
+    const active = button.dataset.focus === panelId;
+    button.textContent = active ? '×' : '⛶';
+    if (active) button.setAttribute('aria-label', `Wyłącz tryb skupienia ${panelId === 'quiz' ? 'quizu' : 'fiszek'}`);
+  });
   document.documentElement.requestFullscreen?.().catch(() => {});
 }
 
 function exitFocusMode() {
   document.body.classList.remove('focus-mode');
   document.querySelectorAll('.study-panel').forEach(item => item.classList.remove('focus-active'));
-  $('#focusExit').hidden = true;
+  document.querySelectorAll('[data-focus]').forEach(button => {
+    button.textContent = '⛶';
+    button.setAttribute('aria-label', `Włącz tryb skupienia ${button.dataset.focus === 'quiz' ? 'quizu' : 'fiszek'}`);
+  });
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
 }
 
@@ -1550,7 +1687,32 @@ $('#resetProgress').addEventListener('click', () => {
   updateStudyTimer();
 });
 
+function setAppMenu(open, { returnFocus = true } = {}) {
+  $('#appMenu').hidden = !open;
+  $('#appMenuBackdrop').hidden = !open;
+  $('#appMenuButton').setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('app-menu-open', open);
+  if (open) {
+    renderNotifications();
+    if (currentUser) loadLeaderboard({ silent: true });
+    window.setTimeout(() => $('#appMenuClose').focus(), 0);
+  } else {
+    $('#notificationCenter').hidden = true;
+    $('#notificationButton').setAttribute('aria-expanded', 'false');
+    if (returnFocus) $('#appMenuButton').focus();
+  }
+}
+
+function toggleNotificationCenter() {
+  const opening = $('#notificationCenter').hidden;
+  $('#notificationCenter').hidden = !opening;
+  $('#notificationButton').setAttribute('aria-expanded', String(opening));
+  renderNotifications();
+  if (opening) window.setTimeout(() => $('#markNotificationsRead').focus(), 0);
+}
+
 function setPointsMenu(open) {
+  if (open) setAppMenu(false, { returnFocus: false });
   $('#pointsMenu').hidden = !open;
   $('#pointsBackdrop').hidden = !open;
   $('#pointsMenuButton').setAttribute('aria-expanded', String(open));
@@ -1571,6 +1733,7 @@ function setAuthMode(mode) {
 }
 
 function setAuthModal(open) {
+  if (open) setAppMenu(false, { returnFocus: false });
   $('#authModal').hidden = !open;
   $('#authBackdrop').hidden = !open;
   $('#accountButton').setAttribute('aria-expanded', String(open));
@@ -1583,8 +1746,26 @@ function setAuthModal(open) {
       else $('#authClose').focus();
     }, 0);
   } else {
-    $('#accountButton').focus();
+    const target = $('#appMenu').hidden ? $('#appMenuButton') : $('#accountButton');
+    target?.focus();
   }
+}
+
+function showEmailConfirmation(email) {
+  $('#confirmationEmail').textContent = email || 'podany adres';
+  $('#authModal').hidden = true;
+  $('#authBackdrop').hidden = true;
+  document.body.classList.remove('auth-modal-open');
+  $('#emailConfirmationPopup').hidden = false;
+  $('#emailConfirmationBackdrop').hidden = false;
+  window.setTimeout(() => $('#emailConfirmationClose').focus(), 0);
+}
+
+function closeEmailConfirmation() {
+  $('#emailConfirmationPopup').hidden = true;
+  $('#emailConfirmationBackdrop').hidden = true;
+  setAuthMode('login');
+  setAuthModal(true);
 }
 
 async function handleLogin(event) {
@@ -1603,7 +1784,8 @@ async function handleLogin(event) {
     $('#loginPassword').value = '';
     setAuthFeedback();
   } catch (error) {
-    setAuthFeedback(readableAuthError(error), 'error');
+    if (/email not confirmed/i.test(String(error?.message || ''))) showEmailConfirmation($('#loginEmail').value.trim());
+    else setAuthFeedback(readableAuthError(error), 'error');
   } finally {
     button.disabled = false;
   }
@@ -1633,7 +1815,7 @@ async function handleRegister(event) {
       await applyAuthSession(data.session);
       setAuthFeedback();
     } else {
-      setAuthFeedback('Konto utworzone. Otwórz wiadomość e-mail i potwierdź rejestrację, a potem się zaloguj.', 'success');
+      showEmailConfirmation($('#registerEmail').value.trim());
     }
   } catch (error) {
     setAuthFeedback(readableAuthError(error), 'error');
@@ -1670,13 +1852,27 @@ async function handleDeleteAccount() {
   }
 }
 
-$('#pointsMenuButton').addEventListener('click', () => setPointsMenu($('#pointsMenu').hidden));
+$('#appMenuButton').addEventListener('click', () => setAppMenu($('#appMenu').hidden));
+$('#appMenuClose').addEventListener('click', () => setAppMenu(false));
+$('#appMenuBackdrop').addEventListener('click', () => setAppMenu(false));
+$('#notificationButton').addEventListener('click', toggleNotificationCenter);
+$('#markNotificationsRead').addEventListener('click', markAllNotificationsRead);
+document.querySelectorAll('[data-menu-mode]').forEach(button => {
+  button.addEventListener('click', () => switchMode(button.dataset.menuMode));
+});
+$('.brand').addEventListener('click', event => {
+  event.preventDefault();
+  switchMode('home');
+});
+$('#pointsMenuButton').addEventListener('click', () => setPointsMenu(true));
 $('#pointsMenuClose').addEventListener('click', () => setPointsMenu(false));
 $('#pointsBackdrop').addEventListener('click', () => setPointsMenu(false));
 $('#activateBoost').addEventListener('click', activateDailyBoost);
 $('#accountButton').addEventListener('click', () => setAuthModal($('#authModal').hidden));
 $('#authClose').addEventListener('click', () => setAuthModal(false));
 $('#authBackdrop').addEventListener('click', () => setAuthModal(false));
+$('#emailConfirmationClose').addEventListener('click', closeEmailConfirmation);
+$('#emailConfirmationBackdrop').addEventListener('click', closeEmailConfirmation);
 $('#loginTab').addEventListener('click', () => setAuthMode('login'));
 $('#registerTab').addEventListener('click', () => setAuthMode('register'));
 $('#loginForm').addEventListener('submit', handleLogin);
@@ -1713,16 +1909,20 @@ $('#celebrationClose').addEventListener('click', () => {
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
     if (document.body.classList.contains('focus-mode')) exitFocusMode();
+    else if (!$('#emailConfirmationPopup').hidden) closeEmailConfirmation();
     else if (!$('#rankCelebration').hidden) $('#celebrationClose').click();
     else if (!$('#authModal').hidden) setAuthModal(false);
     else if (!$('#pointsMenu').hidden) setPointsMenu(false);
+    else if (!$('#appMenu').hidden) setAppMenu(false);
   }
 });
 
 document.querySelectorAll('[data-focus]').forEach(button => {
-  button.addEventListener('click', () => enterFocusMode(button.dataset.focus));
+  button.addEventListener('click', () => {
+    if (document.body.classList.contains('focus-mode')) exitFocusMode();
+    else enterFocusMode(button.dataset.focus);
+  });
 });
-$('#focusExit').addEventListener('click', exitFocusMode);
 document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && document.body.classList.contains('focus-mode')) exitFocusMode();
 });
@@ -1753,6 +1953,7 @@ renderAnswers();
 renderMath();
 renderConceptFilters();
 renderConcepts();
+renderNotifications();
 updateProgress();
 updateStudyTimer();
 startQuiz();
@@ -1760,6 +1961,9 @@ startTest();
 initializeCloud();
 
 window.setInterval(tickStudyTime, 1000);
+window.setInterval(() => {
+  if (currentUser && document.visibilityState === 'visible') loadLeaderboard({ silent: true });
+}, 5 * 60 * 1000);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') persistStudyTime();
   else lastStudyTick = Date.now();

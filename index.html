@@ -10,70 +10,53 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="home-active">
     <div class="page-shell">
       <header class="topbar">
         <a class="brand" href="#start" aria-label="Mikroekonomia - strona główna">
           <span class="brand-mark">μ</span>
           <span>mikroekonomia<span class="muted-dot">.</span></span>
         </a>
-        <div class="topbar-actions">
-          <div class="source-badge"><span aria-hidden="true">✓</span> terminologia książkowa</div>
-          <button class="points-trigger" id="pointsMenuButton" aria-expanded="false" aria-controls="pointsMenu">
-            <span class="points-star" aria-hidden="true">✦</span>
-            <strong id="topPoints">0</strong> pkt
-          </button>
-          <button class="account-trigger" id="accountButton" aria-expanded="false" aria-controls="authModal">
-            <span class="account-avatar" id="accountAvatar" aria-hidden="true">?</span>
-            <span id="accountLabel">Zaloguj się</span>
-          </button>
-        </div>
+        <button class="app-menu-trigger" id="appMenuButton" type="button" aria-expanded="false" aria-controls="appMenu" aria-label="Otwórz menu">
+          <span class="menu-lines" aria-hidden="true"><i></i><i></i></span>
+          <span>Menu</span>
+          <b class="menu-unread-badge" id="menuUnreadBadge" hidden>0</b>
+        </button>
       </header>
 
       <main id="start">
-        <section class="hero">
-          <p class="eyebrow">MANKIW · TAYLOR · MIKROEKONOMIA</p>
-          <h1>Ucz się.<br /><em>Sprawdzaj wiedzę.</em></h1>
-          <p class="hero-copy">Fiszki i quizy z pojęć książkowych. Wybierz rozdział i zacznij.</p>
-          <span class="sr-only"><span id="heroTopicCount">0</span> tematów, <span id="heroFormulaCount">0</span> wzorów, <span id="heroConceptCount">0</span> zagadnień.</span>
-          <div class="hero-actions">
-            <button class="primary-button" data-go="flashcards">Rozpocznij naukę <span>→</span></button>
-            <button class="text-button" data-go="quiz">Przejdź do quizu</button>
-          </div>
-        </section>
+        <section class="study-panel home-panel active" id="home" data-panel="home">
+          <section class="hero">
+            <p class="eyebrow">MANKIW · TAYLOR · MIKROEKONOMIA</p>
+            <h1>Ucz się.<br /><em>Sprawdzaj wiedzę.</em></h1>
+            <p class="hero-copy">Fiszki i quizy z pojęć książkowych. Otwórz menu, wybierz rozdział i zacznij.</p>
+            <span class="sr-only"><span id="heroTopicCount">0</span> tematów, <span id="heroFormulaCount">0</span> wzorów, <span id="heroConceptCount">0</span> zagadnień.</span>
+          </section>
 
-        <section class="progress-strip" aria-label="Postęp nauki">
-          <div class="progress-copy">
-            <p class="eyebrow">TWÓJ POSTĘP</p>
-            <p><strong id="masteredCount">0</strong> z <span id="totalCards">0</span> fiszek opanowanych</p>
-            <p class="rank-line"><span id="progressRank">Początkujący</span> · <strong id="progressPoints">0 pkt</strong></p>
-          </div>
-          <div class="progress-bars">
-            <div>
-              <span>FISZKI</span><span id="masteryPercent">0%</span>
-              <div class="progress-track" aria-hidden="true"><i id="masteryBar"></i></div>
+          <section class="progress-strip" aria-label="Postęp nauki">
+            <div class="progress-copy">
+              <p class="eyebrow">TWÓJ POSTĘP</p>
+              <p><strong id="masteredCount">0</strong> z <span id="totalCards">0</span> fiszek opanowanych</p>
+              <p class="rank-line"><span id="progressRank">Początkujący</span> · <strong id="progressPoints">0 pkt</strong></p>
             </div>
-            <div>
-              <span id="nextRankLabel">DO RANGI: ADEPT</span><span id="rankProgressText">0 / 100</span>
-              <div class="progress-track rank-track" aria-hidden="true"><i id="rankBar"></i></div>
+            <div class="progress-bars">
+              <div>
+                <span>FISZKI</span><span id="masteryPercent">0%</span>
+                <div class="progress-track" aria-hidden="true"><i id="masteryBar"></i></div>
+              </div>
+              <div>
+                <span id="nextRankLabel">DO RANGI: ADEPT</span><span id="rankProgressText">0 / 100</span>
+                <div class="progress-track rank-track" aria-hidden="true"><i id="rankBar"></i></div>
+              </div>
             </div>
-          </div>
-          <button class="reset-button" id="resetProgress">Wyzeruj postęp</button>
+            <button class="reset-button" id="resetProgress">Wyzeruj postęp</button>
+          </section>
         </section>
 
         <div class="learning-layout">
-          <nav class="mode-tabs" aria-label="Tryby nauki">
-            <p class="nav-label">NAUKA</p>
-            <button class="mode-tab active" data-mode="flashcards"><span>01</span><b>Fiszki</b><small>Powtarzaj pojęcia</small></button>
-            <button class="mode-tab" data-mode="quiz"><span>02</span><b>Quiz</b><small>Sprawdź wiedzę</small></button>
-            <button class="mode-tab" data-mode="concepts"><span>03</span><b>Zagadnienia</b><small>Słownik książkowy</small></button>
-            <div class="nav-divider"></div>
-            <button class="mode-tab more-tab" data-mode="more"><span>04</span><b>Więcej</b><small>Zakres i narzędzia</small></button>
-          </nav>
-
           <div class="learning-content">
 
-        <section class="study-panel active" id="flashcards" data-panel="flashcards">
+        <section class="study-panel" id="flashcards" data-panel="flashcards">
           <div class="section-heading study-heading">
             <div>
               <p class="eyebrow">ZAGADNIENIA Z KSIĄŻKI · 19 ROZDZIAŁÓW</p>
@@ -84,7 +67,6 @@
                 <select id="flashcardChapter" aria-label="Filtruj fiszki według rozdziału"></select>
               </label>
               <button class="starred-filter" id="starredFilter" aria-pressed="false"><span aria-hidden="true">★</span> Tylko trudne <b id="starredCount">0</b></button>
-              <button class="focus-toggle" type="button" data-focus="flashcards" aria-label="Włącz tryb pełnoekranowy fiszek">⛶ <span>Tryb skupienia</span></button>
             </div>
           </div>
           <p class="study-pool" id="flashcardPoolCount"></p>
@@ -99,6 +81,7 @@
               </span>
               <span class="flip-instruction" id="flipInstruction">Kliknij, aby zobaczyć definicję <b>↻</b></span>
             </button>
+            <button class="focus-toggle focus-corner" type="button" data-focus="flashcards" aria-label="Włącz tryb skupienia fiszek" title="Tryb skupienia">⛶</button>
           </div>
           <div class="card-actions">
             <button class="secondary-button" id="prevCard">← Poprzednia</button>
@@ -117,7 +100,6 @@
               <h2>Quiz</h2>
             </div>
             <div class="heading-actions">
-              <button class="focus-toggle" type="button" data-focus="quiz" aria-label="Włącz tryb pełnoekranowy quizu">⛶ <span>Tryb skupienia</span></button>
               <button class="text-button" id="restartQuiz">Nowy zestaw</button>
             </div>
           </div>
@@ -143,6 +125,7 @@
             <div class="answers" id="quizAnswers"></div>
             <p class="quiz-feedback" id="quizFeedback" aria-live="polite"></p>
             <button class="primary-button next-question" id="nextQuestion" hidden>Dalej <span>→</span></button>
+            <button class="focus-toggle focus-corner" type="button" data-focus="quiz" aria-label="Włącz tryb skupienia quizu" title="Tryb skupienia">⛶</button>
           </article>
           <article class="quiz-result" id="quizResult" hidden>
             <p class="eyebrow">WYNIK SESJI</p>
@@ -150,6 +133,7 @@
             <h3 id="quizResultText"></h3>
             <p class="quiz-points-earned" id="quizPointsEarned"></p>
             <button class="primary-button" id="quizAgain">Spróbuj ponownie <span>↻</span></button>
+            <button class="focus-toggle focus-corner" type="button" data-focus="quiz" aria-label="Włącz tryb skupienia quizu" title="Tryb skupienia">⛶</button>
           </article>
         </section>
 
@@ -327,6 +311,51 @@
         </div>
       </main>
 
+      <aside class="app-menu" id="appMenu" hidden aria-label="Menu główne">
+        <div class="app-menu-head">
+          <div>
+            <p class="eyebrow">MIKROEKONOMIA</p>
+            <h2>Menu</h2>
+          </div>
+          <div class="app-menu-head-actions">
+            <button class="notification-trigger" id="notificationButton" type="button" aria-expanded="false" aria-controls="notificationCenter" aria-label="Powiadomienia">
+              <span aria-hidden="true">♢</span><span class="sr-only">Centrum powiadomień</span>
+              <b id="notificationUnreadBadge" hidden>0</b>
+            </button>
+            <button class="points-close" id="appMenuClose" aria-label="Zamknij menu">×</button>
+          </div>
+        </div>
+
+        <section class="notification-center" id="notificationCenter" hidden aria-label="Centrum powiadomień">
+          <div class="notification-center-head">
+            <div><strong>Powiadomienia</strong><small>Aktualizacje strony i zmiany w rankingu</small></div>
+            <button class="text-button" id="markNotificationsRead" type="button">Oznacz jako przeczytane</button>
+          </div>
+          <div class="notification-list" id="notificationList"></div>
+        </section>
+
+        <nav class="app-menu-nav" aria-label="Nawigacja strony">
+          <button class="menu-nav-button active" type="button" data-menu-mode="home"><span>⌂</span><div><strong>Strona główna</strong><small>Twój postęp i najważniejsze informacje</small></div></button>
+          <p class="menu-section-label">NAUKA</p>
+          <button class="menu-nav-button" type="button" data-menu-mode="flashcards"><span>01</span><div><strong>Fiszki</strong><small>Powtarzaj pojęcia z rozdziałów</small></div></button>
+          <button class="menu-nav-button" type="button" data-menu-mode="quiz"><span>02</span><div><strong>Quiz</strong><small>Sprawdź swoją wiedzę</small></div></button>
+          <button class="menu-nav-button" type="button" data-menu-mode="concepts"><span>03</span><div><strong>Zagadnienia</strong><small>Słownik pojęć z książki</small></div></button>
+          <button class="menu-nav-button" type="button" data-menu-mode="more"><span>04</span><div><strong>Więcej</strong><small>Test, zakres, wzory i ranking</small></div></button>
+        </nav>
+
+        <div class="app-menu-profile">
+          <button class="menu-profile-button" id="pointsMenuButton" type="button" aria-expanded="false" aria-controls="pointsMenu">
+            <span class="menu-profile-icon points-star" aria-hidden="true">✦</span>
+            <div><strong>Punkty i rangi</strong><small><b id="topPoints">0</b> pkt · <span id="menuQuickRank">Początkujący</span></small></div><i aria-hidden="true">›</i>
+          </button>
+          <button class="menu-profile-button account-trigger" id="accountButton" type="button" aria-expanded="false" aria-controls="authModal">
+            <span class="account-avatar" id="accountAvatar" aria-hidden="true">?</span>
+            <div><strong id="accountLabel">Zaloguj się</strong><small id="accountMenuStatus">Synchronizuj postęp</small></div><i aria-hidden="true">›</i>
+          </button>
+        </div>
+      </aside>
+      <button class="app-menu-backdrop" id="appMenuBackdrop" hidden aria-label="Zamknij menu"></button>
+
       <aside class="points-menu" id="pointsMenu" hidden aria-label="Punkty i rangi">
         <div class="points-menu-head">
           <div>
@@ -419,7 +448,16 @@
         </div>
       </section>
 
-      <button class="focus-exit" id="focusExit" type="button" hidden>× Zakończ tryb skupienia</button>
+      <button class="email-confirmation-backdrop" id="emailConfirmationBackdrop" hidden aria-label="Zamknij komunikat"></button>
+      <section class="email-confirmation-popup" id="emailConfirmationPopup" hidden role="alertdialog" aria-modal="true" aria-labelledby="emailConfirmationTitle">
+        <span class="confirmation-icon" aria-hidden="true">✉</span>
+        <p class="eyebrow">OSTATNI KROK</p>
+        <h2 id="emailConfirmationTitle">Potwierdź swój e-mail</h2>
+        <p>Wysłaliśmy link aktywacyjny na <strong id="confirmationEmail"></strong>. Otwórz wiadomość i kliknij przycisk potwierdzenia, a następnie wróć do logowania.</p>
+        <small>Jeśli wiadomości nie ma w skrzynce odbiorczej, sprawdź folder Spam lub Oferty.</small>
+        <button class="primary-button" id="emailConfirmationClose" type="button">Rozumiem</button>
+      </section>
+
       <div class="points-announcer sr-only" id="pointsAnnouncer" aria-live="polite"></div>
 
       <div class="rank-celebration" id="rankCelebration" hidden role="status" aria-live="polite">
