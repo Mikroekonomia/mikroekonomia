@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f3ed" />
+    <title>Mikroekonomia · Mankiw i Taylor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#start" aria-label="Mikroekonomia - strona główna">
+          <span class="brand-mark">μ</span>
+          <span>mikroekonomia<span class="muted-dot">.</span></span>
+        </a>
+        <div class="topbar-actions">
+          <div class="source-badge"><span aria-hidden="true">✓</span> terminologia książkowa</div>
+          <button class="points-trigger" id="pointsMenuButton" aria-expanded="false" aria-controls="pointsMenu">
+            <span class="points-star" aria-hidden="true">✦</span>
+            <strong id="topPoints">0</strong> pkt
+          </button>
+          <button class="account-trigger" id="accountButton" aria-expanded="false" aria-controls="authModal">
+            <span class="account-avatar" id="accountAvatar" aria-hidden="true">?</span>
+            <span id="accountLabel">Zaloguj się</span>
+          </button>
+        </div>
+      </header>
+
+      <main id="start">
+        <section class="hero">
+          <p class="eyebrow">MANKIW · TAYLOR · MIKROEKONOMIA</p>
+          <h1>Ucz się.<br /><em>Sprawdzaj wiedzę.</em></h1>
+          <p class="hero-copy">Fiszki i quizy z pojęć książkowych. Wybierz rozdział i zacznij.</p>
+          <span class="sr-only"><span id="heroTopicCount">0</span> tematów, <span id="heroFormulaCount">0</span> wzorów, <span id="heroConceptCount">0</span> zagadnień.</span>
+          <div class="hero-actions">
+            <button class="primary-button" data-go="flashcards">Rozpocznij naukę <span>→</span></button>
+            <button class="text-button" data-go="quiz">Przejdź do quizu</button>
+          </div>
+        </section>
+
+        <section class="progress-strip" aria-label="Postęp nauki">
+          <div class="progress-copy">
+            <p class="eyebrow">TWÓJ POSTĘP</p>
+            <p><strong id="masteredCount">0</strong> z <span id="totalCards">0</span> fiszek opanowanych</p>
+            <p class="rank-line"><span id="progressRank">Początkujący</span> · <strong id="progressPoints">0 pkt</strong></p>
+          </div>
+          <div class="progress-bars">
+            <div>
+              <span>FISZKI</span><span id="masteryPercent">0%</span>
+              <div class="progress-track" aria-hidden="true"><i id="masteryBar"></i></div>
+            </div>
+            <div>
+              <span id="nextRankLabel">DO RANGI: ADEPT</span><span id="rankProgressText">0 / 100</span>
+              <div class="progress-track rank-track" aria-hidden="true"><i id="rankBar"></i></div>
+            </div>
+          </div>
+          <button class="reset-button" id="resetProgress">Wyzeruj postęp</button>
+        </section>
+
+        <div class="learning-layout">
+          <nav class="mode-tabs" aria-label="Tryby nauki">
+            <p class="nav-label">NAUKA</p>
+            <button class="mode-tab active" data-mode="flashcards"><span>01</span><b>Fiszki</b><small>Powtarzaj pojęcia</small></button>
+            <button class="mode-tab" data-mode="quiz"><span>02</span><b>Quiz</b><small>Sprawdź wiedzę</small></button>
+            <button class="mode-tab" data-mode="concepts"><span>03</span><b>Zagadnienia</b><small>Słownik książkowy</small></button>
+            <div class="nav-divider"></div>
+            <button class="mode-tab more-tab" data-mode="more"><span>04</span><b>Więcej</b><small>Zakres i narzędzia</small></button>
+          </nav>
+
+          <div class="learning-content">
+
+        <section class="study-panel active" id="flashcards" data-panel="flashcards">
+          <div class="section-heading study-heading">
+            <div>
+              <p class="eyebrow">ZAGADNIENIA Z KSIĄŻKI · 19 ROZDZIAŁÓW</p>
+              <h2>Fiszki</h2>
+            </div>
+            <div class="study-filters">
+              <label class="compact-select">Rozdział
+                <select id="flashcardChapter" aria-label="Filtruj fiszki według rozdziału"></select>
+              </label>
+              <button class="starred-filter" id="starredFilter" aria-pressed="false"><span aria-hidden="true">★</span> Tylko trudne <b id="starredCount">0</b></button>
+            </div>
+          </div>
+          <p class="study-pool" id="flashcardPoolCount"></p>
+          <div class="card-counter"><span id="cardPosition">1 / 1</span><span id="cardPage">ROZDZIAŁ</span></div>
+          <div class="flashcard-stage">
+            <button class="card-star" id="starCard" aria-label="Oznacz fiszkę jako trudną" aria-pressed="false">☆</button>
+            <button class="flashcard" id="flashcard" aria-label="Odwróć fiszkę">
+              <span class="card-hint" id="cardHint">POJĘCIE</span>
+              <span class="flashcard-inner">
+                <span class="card-face card-front" id="cardFront" aria-hidden="false"></span>
+                <span class="card-face card-back" id="cardBack" aria-hidden="true"></span>
+              </span>
+              <span class="flip-instruction" id="flipInstruction">Kliknij, aby zobaczyć definicję <b>↻</b></span>
+            </button>
+          </div>
+          <div class="card-actions">
+            <button class="secondary-button" id="prevCard">← Poprzednia</button>
+            <div class="recall-actions" id="recallActions" hidden>
+              <button class="recall-button hard" data-recall="again">Jeszcze raz</button>
+              <button class="recall-button good" data-recall="good">Umiem</button>
+            </div>
+            <button class="secondary-button" id="nextCard">Następna →</button>
+          </div>
+        </section>
+
+        <section class="study-panel" id="quiz" data-panel="quiz">
+          <div class="section-heading compact study-heading">
+            <div>
+              <p class="eyebrow">QUIZ Z ZAGADNIEŃ KSIĄŻKOWYCH</p>
+              <h2>Quiz</h2>
+            </div>
+            <button class="text-button" id="restartQuiz">Nowy zestaw</button>
+          </div>
+          <div class="quiz-settings">
+            <label class="compact-select">Rozdział
+              <select id="quizChapter" aria-label="Wybierz rozdział quizu"></select>
+            </label>
+            <label class="compact-select">Liczba pytań
+              <select id="quizLength" aria-label="Wybierz liczbę pytań w quizie">
+                <option value="10">10 pytań</option>
+                <option value="20" selected>20 pytań</option>
+                <option value="30">30 pytań</option>
+                <option value="50">50 pytań</option>
+                <option value="all">Cała dostępna pula</option>
+              </select>
+            </label>
+            <p class="study-pool" id="quizPoolCount"></p>
+          </div>
+          <div class="quiz-progress"><span id="quizProgressLabel">Pytanie 1 z 10</span><div><i id="quizProgressBar"></i></div></div>
+          <article class="quiz-card" id="quizCard">
+            <p class="question-topic" id="quizPage"></p>
+            <h3 id="quizQuestion"></h3>
+            <div class="answers" id="quizAnswers"></div>
+            <p class="quiz-feedback" id="quizFeedback" aria-live="polite"></p>
+            <button class="primary-button next-question" id="nextQuestion" hidden>Dalej <span>→</span></button>
+          </article>
+          <article class="quiz-result" id="quizResult" hidden>
+            <p class="eyebrow">WYNIK SESJI</p>
+            <p class="result-number"><span id="quizScore">0</span>/<span id="quizTotal">0</span></p>
+            <h3 id="quizResultText"></h3>
+            <p class="quiz-points-earned" id="quizPointsEarned"></p>
+            <button class="primary-button" id="quizAgain">Spróbuj ponownie <span>↻</span></button>
+          </article>
+        </section>
+
+        <section class="study-panel" id="more" data-panel="more">
+          <div class="section-heading more-heading">
+            <div>
+              <p class="eyebrow">POZOSTAŁE MATERIAŁY</p>
+              <h2>Więcej narzędzi</h2>
+            </div>
+          </div>
+          <p class="panel-intro">Dodatkowe części serwisu są zebrane w jednym miejscu, aby główne tryby nauki pozostały proste i czytelne.</p>
+          <div class="more-grid">
+            <button class="more-card" data-go="test">
+              <span>01</span><strong>Test</strong>
+              <p>Wpisuj samodzielnie nazwy zagadnień i sprawdzaj pamięć.</p><b>Rozpocznij →</b>
+            </button>
+            <button class="more-card" data-go="answers">
+              <span>02</span><strong>Odpowiedzi</strong>
+              <p>Wyszukaj odpowiedź na pytanie i przejdź do właściwego rozdziału.</p><b>Otwórz →</b>
+            </button>
+            <button class="more-card" data-go="scope">
+              <span>03</span><strong>Zakres</strong>
+              <p>Przejrzyj pełny spis rozdziałów i tematów z książki.</p><b>Otwórz →</b>
+            </button>
+            <button class="more-card" data-go="math">
+              <span>04</span><strong>Matematyczne</strong>
+              <p>Znajdź wzory, zmienne, symbole oraz warunki ich stosowania.</p><b>Otwórz →</b>
+            </button>
+            <button class="more-card" data-go="leaderboard">
+              <span>05</span><strong>Ranking</strong>
+              <p>Porównaj punkty i rangi zalogowanych uczniów.</p><b>Zobacz ranking →</b>
+            </button>
+          </div>
+        </section>
+
+        <section class="study-panel" id="leaderboard" data-panel="leaderboard">
+          <div class="section-heading leaderboard-heading">
+            <div>
+              <p class="eyebrow">KLASYFIKACJA UCZNIÓW</p>
+              <h2>Ranking</h2>
+            </div>
+            <button class="text-button" id="refreshLeaderboard">Odśwież</button>
+          </div>
+          <p class="panel-intro">Ranking pokazuje punkty zapisane na kontach użytkowników. Twój wiersz jest wyróżniony.</p>
+          <p class="cloud-notice" id="leaderboardNotice" aria-live="polite"></p>
+          <div class="leaderboard-list" id="leaderboardList"></div>
+        </section>
+
+        <section class="study-panel" id="test" data-panel="test">
+          <div class="section-heading compact study-heading">
+            <div>
+              <p class="eyebrow">TEST PISEMNY Z ZAGADNIEŃ</p>
+              <h2>Test</h2>
+            </div>
+            <button class="text-button" id="restartTest">Nowy zestaw</button>
+          </div>
+          <div class="quiz-settings test-settings">
+            <label class="compact-select">Rozdział
+              <select id="testChapter" aria-label="Wybierz rozdział testu"></select>
+            </label>
+            <label class="compact-select">Liczba pytań
+              <select id="testLength" aria-label="Wybierz liczbę pytań w teście">
+                <option value="5">5 pytań</option>
+                <option value="10" selected>10 pytań</option>
+                <option value="20">20 pytań</option>
+                <option value="30">30 pytań</option>
+                <option value="all">Cała dostępna pula</option>
+              </select>
+            </label>
+            <p class="study-pool" id="testPoolCount"></p>
+          </div>
+          <div class="quiz-progress"><span id="testProgressLabel">Pytanie 1 z 10</span><div><i id="testProgressBar"></i></div></div>
+          <article class="quiz-card test-card" id="testCard">
+            <p class="question-topic" id="testPage"></p>
+            <h3 id="testQuestion"></h3>
+            <form class="test-answer-form" id="testAnswerForm">
+              <label for="testAnswer">Nazwa zagadnienia</label>
+              <div><input id="testAnswer" type="text" autocomplete="off" spellcheck="false" placeholder="Wpisz odpowiedź…" /><button class="primary-button" id="testAnswerSubmit" type="submit">Sprawdź</button></div>
+              <button class="text-button reveal-test-answer" id="showTestAnswer" type="button">Pokaż odpowiedź</button>
+            </form>
+            <p class="quiz-feedback" id="testFeedback" aria-live="polite"></p>
+            <button class="primary-button next-question" id="nextTestQuestion" hidden>Dalej <span>→</span></button>
+          </article>
+          <article class="quiz-result" id="testResult" hidden>
+            <p class="eyebrow">WYNIK TESTU</p>
+            <p class="result-number"><span id="testScore">0</span>/<span id="testTotal">0</span></p>
+            <h3 id="testResultText"></h3>
+            <p class="quiz-points-earned" id="testPointsEarned"></p>
+            <button class="primary-button" id="testAgain">Spróbuj ponownie <span>↻</span></button>
+          </article>
+        </section>
+
+        <section class="study-panel" id="answers" data-panel="answers">
+          <div class="section-heading answers-heading">
+            <div>
+              <p class="eyebrow">PYTANIE → ODPOWIEDŹ → ROZDZIAŁ</p>
+              <h2>Szukaj odpowiedzi</h2>
+            </div>
+            <label class="compact-select">Rozdział
+              <select id="answerChapter" aria-label="Filtruj odpowiedzi według rozdziału"></select>
+            </label>
+          </div>
+          <label class="answer-search">
+            <span class="sr-only">Wpisz pytanie z mikroekonomii</span>
+            <input id="answerSearch" type="search" placeholder="Np. dlaczego podatek tworzy stratę społeczną?" autocomplete="off" />
+            <span class="search-key">ENTER</span>
+          </label>
+          <div class="answer-prompts" aria-label="Przykładowe pytania">
+            <button data-question="Jak znaleźć równowagę rynkową?">Równowaga rynkowa</button>
+            <button data-question="Kto ponosi ciężar podatku?">Ciężar podatku</button>
+            <button data-question="Jak monopol wybiera cenę i ilość?">Monopol</button>
+            <button data-question="Dlaczego handel przynosi korzyści?">Handel</button>
+          </div>
+          <p class="answer-count" id="answerCount" aria-live="polite"></p>
+          <div class="answer-results" id="answerResults"></div>
+        </section>
+
+        <section class="study-panel" id="scope" data-panel="scope">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SPIS TREŚCI PODRĘCZNIKA</p>
+              <h2>Zakres</h2>
+            </div>
+            <p class="subtle"><span id="scopeTopicCount">0</span> tematów · 19 rozdziałów · 9 części</p>
+          </div>
+          <div class="scope-tools">
+            <p class="panel-intro">Nazwy części, rozdziałów i podrozdziałów zachowują brzmienie ze spisu treści przesłanego PDF-u.</p>
+            <label class="concept-search scope-search">
+              <span class="sr-only">Szukaj w zakresie</span>
+              <input id="scopeSearch" type="search" placeholder="Szukaj tematu w całej książce" autocomplete="off" />
+            </label>
+          </div>
+          <div class="scope-list" id="scopeList"></div>
+        </section>
+
+        <section class="study-panel" id="math" data-panel="math">
+          <div class="section-heading math-heading">
+            <div>
+              <p class="eyebrow">WZORY · SYMBOLE · INTERPRETACJA</p>
+              <h2>Matematyczne</h2>
+            </div>
+            <label class="compact-select">Rozdział
+              <select id="mathChapter" aria-label="Filtruj matematykę według rozdziału"></select>
+            </label>
+          </div>
+          <p class="panel-intro">Zweryfikowany indeks obliczeń używanych w całym zakresie książki. Każdy wzór zawiera wyjaśnienie zastosowania, wszystkich zmiennych oraz znaków matematycznych.</p>
+          <div class="math-toolbar">
+            <p class="formula-total">Wzory <strong id="formulaCount">0</strong></p>
+            <label class="concept-search math-search">
+              <span class="sr-only">Szukaj wzoru</span>
+              <input id="mathSearch" type="search" placeholder="Szukaj: elastyczność, koszt, podatek…" autocomplete="off" />
+            </label>
+          </div>
+          <p class="math-count" id="mathCount" aria-live="polite"></p>
+          <div class="formula-grid" id="formulaGrid"></div>
+        </section>
+
+        <section class="study-panel" id="concepts" data-panel="concepts">
+          <div class="section-heading concepts-heading">
+            <div>
+              <p class="eyebrow">SŁOWNIK POJĘĆ</p>
+              <h2>Zagadnienia</h2>
+            </div>
+            <label class="concept-search">
+              <span class="sr-only">Szukaj w zagadnieniach</span>
+              <input id="conceptSearch" type="search" placeholder="Szukaj pojęcia lub fragmentu definicji" autocomplete="off" />
+            </label>
+          </div>
+          <p class="panel-intro">Każde hasło ma książkową nazwę, definicję oraz przypisany rozdział. Filtry literowe działają według polskiego alfabetu.</p>
+          <div class="concept-filters" id="conceptFilters"></div>
+          <p class="concept-count" id="conceptCount" aria-live="polite"></p>
+          <div class="concept-grid" id="conceptGrid"></div>
+        </section>
+          </div>
+        </div>
+      </main>
+
+      <aside class="points-menu" id="pointsMenu" hidden aria-label="Punkty i rangi">
+        <div class="points-menu-head">
+          <div>
+            <p class="eyebrow">TWÓJ PROFIL NAUKI</p>
+            <h2>Punkty i rangi</h2>
+          </div>
+          <button class="points-close" id="pointsMenuClose" aria-label="Zamknij menu punktów">×</button>
+        </div>
+        <section class="current-rank-card">
+          <span class="rank-emblem" id="rankEmblem" aria-hidden="true">I</span>
+          <div>
+            <p id="rankName">Początkujący</p>
+            <strong><span id="menuPoints">0</span> punktów</strong>
+          </div>
+        </section>
+        <p class="cloud-status" id="cloudStatus">Postęp lokalny</p>
+        <div class="menu-rank-progress">
+          <div><span id="menuNextRank">Następna ranga: Adept</span><span id="menuRankProgress">0 / 100</span></div>
+          <div class="progress-track"><i id="menuRankBar"></i></div>
+        </div>
+        <div class="points-rules">
+          <p class="eyebrow">JAK ZDOBYWASZ PUNKTY</p>
+          <ul>
+            <li><span>Opanowanie nowej fiszki</span><strong>+5 pkt</strong></li>
+            <li><span>Poprawna odpowiedź w quizie lub teście</span><strong>+5 pkt</strong></li>
+            <li><span>Wynik 80–99% w zestawie</span><strong>+5 pkt</strong></li>
+            <li><span>Zestaw bez błędu</span><strong>+10 pkt</strong></li>
+            <li><span>15 minut aktywnej nauki</span><strong>+20 pkt</strong></li>
+          </ul>
+        </div>
+        <section class="study-timer-card" aria-label="Premia za czas nauki">
+          <div><span>DO KOLEJNEJ PREMII</span><strong id="studyTimerLabel">15:00</strong></div>
+          <div class="progress-track" aria-hidden="true"><i id="studyTimerBar"></i></div>
+          <small>+20 pkt co 15 minut na widocznej karcie strony</small>
+        </section>
+        <div class="rank-ladder" id="rankLadder"></div>
+      </aside>
+      <button class="points-backdrop" id="pointsBackdrop" hidden aria-label="Zamknij menu punktów"></button>
+
+      <button class="auth-backdrop" id="authBackdrop" hidden aria-label="Zamknij okno konta"></button>
+      <section class="auth-modal" id="authModal" hidden role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <div class="auth-modal-head">
+          <div>
+            <p class="eyebrow">KONTO UCZNIA</p>
+            <h2 id="authTitle">Zaloguj się</h2>
+          </div>
+          <button class="points-close" id="authClose" aria-label="Zamknij okno konta">×</button>
+        </div>
+        <div id="authUnavailable" hidden>
+          <p class="auth-copy">Logowanie wymaga jednorazowego połączenia strony z projektem Supabase. Instrukcja znajduje się w pliku <strong>SUPABASE_SETUP.md</strong>.</p>
+        </div>
+        <div id="authSignedOut">
+          <div class="auth-tabs" role="tablist" aria-label="Logowanie lub rejestracja">
+            <button class="active" id="loginTab" type="button" role="tab" aria-selected="true">Logowanie</button>
+            <button id="registerTab" type="button" role="tab" aria-selected="false">Rejestracja</button>
+          </div>
+          <form class="auth-form" id="loginForm">
+            <label>E-mail<input id="loginEmail" type="email" autocomplete="email" required /></label>
+            <label>Hasło<input id="loginPassword" type="password" autocomplete="current-password" minlength="8" required /></label>
+            <button class="primary-button" type="submit">Zaloguj się</button>
+          </form>
+          <form class="auth-form" id="registerForm" hidden>
+            <label>Nazwa w rankingu<input id="registerName" type="text" autocomplete="nickname" minlength="2" maxlength="30" required /></label>
+            <label>E-mail<input id="registerEmail" type="email" autocomplete="email" required /></label>
+            <label>Hasło<input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+            <small>Minimum 8 znaków. Hasło jest obsługiwane przez Supabase i nie trafia do kodu strony.</small>
+            <button class="primary-button" type="submit">Utwórz konto</button>
+          </form>
+          <p class="auth-feedback" id="authFeedback" aria-live="polite"></p>
+        </div>
+        <div class="auth-profile" id="authSignedIn" hidden>
+          <span class="profile-avatar" id="profileAvatar" aria-hidden="true">U</span>
+          <div><strong id="profileName">Uczeń</strong><small id="profileEmail"></small></div>
+          <p id="profileSyncStatus">Postęp jest synchronizowany.</p>
+          <button class="primary-button" id="profileLeaderboard" type="button">Zobacz ranking</button>
+          <button class="text-button" id="logoutButton" type="button">Wyloguj się</button>
+        </div>
+      </section>
+
+      <div class="points-toast" id="pointsToast" hidden aria-live="polite">
+        <span>+<strong id="pointsToastValue">0</strong></span>
+        <p id="pointsToastLabel">punkty</p>
+      </div>
+
+      <div class="rank-celebration" id="rankCelebration" hidden role="status" aria-live="polite">
+        <div class="celebration-burst" aria-hidden="true"></div>
+        <div class="celebration-card">
+          <p class="eyebrow">NOWA RANGA</p>
+          <span class="rank-emblem" id="celebrationEmblem">II</span>
+          <h2 id="celebrationRank">Adept</h2>
+          <p>Twoja regularna nauka przynosi efekty.</p>
+          <button class="primary-button" id="celebrationClose">Kontynuuj naukę <span>→</span></button>
+        </div>
+      </div>
+
+      <footer>Materiał do prywatnej nauki na podstawie przesłanego egzemplarza „Mikroekonomii” N. Gregory’ego Mankiwa i Marka P. Taylora · po zalogowaniu postęp jest synchronizowany między urządzeniami.</footer>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="book-data.js"></script>
+    <script src="curriculum-data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
