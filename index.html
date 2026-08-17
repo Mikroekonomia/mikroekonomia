@@ -51,6 +51,31 @@
             </div>
             <button class="reset-button" id="resetProgress">Wyzeruj postęp</button>
           </section>
+
+          <section class="home-overview" aria-labelledby="homeOverviewTitle">
+            <div class="home-overview-heading">
+              <p class="eyebrow">O SERWISIE</p>
+              <h2 id="homeOverviewTitle">Cała książka w jednym miejscu.</h2>
+              <p>Materiał jest uporządkowany zgodnie z 19 rozdziałami podręcznika. Możesz uczyć się pojęć, sprawdzać wiedzę i szybko wracać do streszczeń.</p>
+            </div>
+            <div class="home-info-grid">
+              <article>
+                <span>01</span>
+                <strong>19 rozdziałów</strong>
+                <p>Zakres i streszczenia zachowują kolejność książki.</p>
+              </article>
+              <article>
+                <span>02</span>
+                <strong><b id="homeConceptCount">0</b> zagadnień</strong>
+                <p>Fiszki, quizy i testy możesz filtrować według rozdziału.</p>
+              </article>
+              <article>
+                <span>03</span>
+                <strong>Nauka z postępem</strong>
+                <p>Postęp obejmuje punkty, rangi, trudne fiszki i miejsce w rankingu.</p>
+              </article>
+            </div>
+          </section>
         </section>
 
         <div class="learning-layout">
@@ -155,16 +180,12 @@
               <p>Wyszukaj odpowiedź na pytanie i przejdź do właściwego rozdziału.</p><b>Otwórz →</b>
             </button>
             <button class="more-card" data-go="scope">
-              <span>03</span><strong>Zakres</strong>
-              <p>Przejrzyj pełny spis rozdziałów i tematów z książki.</p><b>Otwórz →</b>
+              <span>03</span><strong>Zakres i streszczenia</strong>
+              <p>Przejrzyj tematy i najważniejsze wnioski z każdego rozdziału.</p><b>Otwórz →</b>
             </button>
             <button class="more-card" data-go="math">
               <span>04</span><strong>Matematyczne</strong>
               <p>Znajdź wzory, zmienne, symbole oraz warunki ich stosowania.</p><b>Otwórz →</b>
-            </button>
-            <button class="more-card" data-go="leaderboard">
-              <span>05</span><strong>Ranking</strong>
-              <p>Porównaj punkty i rangi zalogowanych uczniów.</p><b>Zobacz ranking →</b>
             </button>
           </div>
         </section>
@@ -255,12 +276,12 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">SPIS TREŚCI PODRĘCZNIKA</p>
-              <h2>Zakres</h2>
+              <h2>Zakres i streszczenia</h2>
             </div>
             <p class="subtle"><span id="scopeTopicCount">0</span> tematów · 19 rozdziałów · 9 części</p>
           </div>
           <div class="scope-tools">
-            <p class="panel-intro">Nazwy części, rozdziałów i podrozdziałów zachowują brzmienie ze spisu treści przesłanego PDF-u.</p>
+            <p class="panel-intro">Otwórz spis tematów lub wybierz „Streszczenie”, aby zobaczyć najważniejsze idee danego rozdziału.</p>
             <label class="concept-search scope-search">
               <span class="sr-only">Szukaj w zakresie</span>
               <input id="scopeSearch" type="search" placeholder="Szukaj tematu w całej książce" autocomplete="off" />
@@ -302,8 +323,7 @@
               <input id="conceptSearch" type="search" placeholder="Szukaj pojęcia lub fragmentu definicji" autocomplete="off" />
             </label>
           </div>
-          <p class="panel-intro">Każde hasło ma książkową nazwę, definicję oraz przypisany rozdział. Filtry literowe działają według polskiego alfabetu.</p>
-          <div class="concept-filters" id="conceptFilters"></div>
+          <p class="panel-intro">Każde hasło ma książkową nazwę, definicję oraz przypisany rozdział. Skorzystaj z wyszukiwarki, aby szybko znaleźć pojęcie.</p>
           <p class="concept-count" id="conceptCount" aria-live="polite"></p>
           <div class="concept-grid" id="conceptGrid"></div>
         </section>
@@ -340,7 +360,8 @@
           <button class="menu-nav-button" type="button" data-menu-mode="flashcards"><span>01</span><div><strong>Fiszki</strong><small>Powtarzaj pojęcia z rozdziałów</small></div></button>
           <button class="menu-nav-button" type="button" data-menu-mode="quiz"><span>02</span><div><strong>Quiz</strong><small>Sprawdź swoją wiedzę</small></div></button>
           <button class="menu-nav-button" type="button" data-menu-mode="concepts"><span>03</span><div><strong>Zagadnienia</strong><small>Słownik pojęć z książki</small></div></button>
-          <button class="menu-nav-button" type="button" data-menu-mode="more"><span>04</span><div><strong>Więcej</strong><small>Test, zakres, wzory i ranking</small></div></button>
+          <button class="menu-nav-button" type="button" data-menu-mode="leaderboard"><span>04</span><div><strong>Ranking</strong><small>Punkty i rangi uczniów</small></div></button>
+          <button class="menu-nav-button" type="button" data-menu-mode="more"><span>05</span><div><strong>Więcej</strong><small>Test, odpowiedzi, streszczenia i wzory</small></div></button>
         </nav>
 
         <div class="app-menu-profile">

@@ -10,6 +10,13 @@ const notificationReadStorageKey = 'mankiw-taylor-notifications-read-v1';
 
 const siteUpdateNotifications = [
   {
+    id: 'update-summaries-ranking-2026-08-17',
+    type: 'update',
+    title: 'Streszczenia i szybszy dostęp do rankingu',
+    message: 'Każdy z 19 rozdziałów ma teraz krótkie streszczenie, a ranking znajdziesz bezpośrednio w menu.',
+    createdAt: '2026-08-17T21:30:00+02:00'
+  },
+  {
     id: 'update-clean-menu-2026-08-17',
     type: 'update',
     title: 'Nowe, czystsze menu',
@@ -214,7 +221,6 @@ let cardTransitioning = false;
 let selectedQuizChapter = 'all';
 let selectedQuizLength = 20;
 let currentCard = 0;
-let selectedLetter = 'Wszystkie';
 let quizSet = [];
 let quizIndex = 0;
 let quizScore = 0;
@@ -499,6 +505,7 @@ function updateProgress() {
   $('#totalCards').textContent = total;
   $('#starredCount').textContent = progress.starred.length;
   $('#heroConceptCount').textContent = bookConcepts.length;
+  $('#homeConceptCount').textContent = bookConcepts.length;
   $('#heroTopicCount').textContent = fullBookOutline.reduce((sum, chapter) => sum + chapter.topics.length, 0);
   $('#heroFormulaCount').textContent = formulaCatalog.length;
   $('#masteryBar').style.width = `${masteryPercent}%`;
@@ -899,7 +906,7 @@ function persistStudyTime() {
 
 function switchMode(mode) {
   if (document.body.classList.contains('focus-mode')) exitFocusMode();
-  const secondaryModes = ['test', 'answers', 'scope', 'math', 'leaderboard'];
+  const secondaryModes = ['test', 'answers', 'scope', 'math'];
   const menuMode = secondaryModes.includes(mode) ? 'more' : mode;
   document.querySelectorAll('[data-menu-mode]').forEach(button => {
     button.classList.toggle('active', button.dataset.menuMode === menuMode);
@@ -1372,24 +1379,46 @@ function renderScope() {
     const chapter = chapterByNumber(outline.number);
     const guide = chapterGuides.find(item => item.number === outline.number);
     const headingMatches = normalizeText(`${chapter.partTitle} ${chapter.title}`).includes(query);
+    const summaryMatches = normalizeText(`${guide.overview} ${guide.qa.flat().join(' ')}`).includes(query);
     const matchingTopics = query && !headingMatches
       ? outline.topics.filter(topic => normalizeText(topic).includes(query))
       : outline.topics;
-    return { chapter, guide, outline, matchingTopics, matches: !query || headingMatches || matchingTopics.length };
+    return {
+      chapter,
+      guide,
+      outline,
+      matchingTopics,
+      headingMatches,
+      summaryMatches,
+      matches: !query || headingMatches || summaryMatches || matchingTopics.length
+    };
   }).filter(item => item.matches);
 
-  $('#scopeList').innerHTML = chapters.length ? chapters.map(({ chapter, guide, outline, matchingTopics }) => `
-    <article class="scope-chapter ${query ? 'open' : ''}">
-      <button class="scope-toggle" aria-expanded="${query ? 'true' : 'false'}">
-        <span class="scope-number">${String(chapter.number).padStart(2, '0')}</span>
-        <span class="scope-copy">
-          <small>CZĘŚĆ ${escapeHtml(chapter.part)} · ${escapeHtml(chapter.partTitle)}</small>
-          <strong>${escapeHtml(chapter.title)}</strong>
-        </span>
-        <span class="scope-arrow" aria-hidden="true">+</span>
-      </button>
+  $('#scopeList').innerHTML = chapters.length ? chapters.map(({ chapter, guide, matchingTopics, headingMatches, summaryMatches }) => {
+    const topicsOpen = Boolean(query && (headingMatches || matchingTopics.length));
+    const summaryOpen = Boolean(query && summaryMatches && !topicsOpen);
+    return `
+    <article class="scope-chapter ${topicsOpen ? 'topics-open' : ''} ${summaryOpen ? 'summary-open' : ''}">
+      <div class="scope-chapter-head">
+        <button class="scope-toggle" aria-expanded="${topicsOpen}">
+          <span class="scope-number">${String(chapter.number).padStart(2, '0')}</span>
+          <span class="scope-copy">
+            <small>CZĘŚĆ ${escapeHtml(chapter.part)} · ${escapeHtml(chapter.partTitle)}</small>
+            <strong>${escapeHtml(chapter.title)}</strong>
+          </span>
+          <span class="scope-topics-label">Tematy</span>
+          <span class="scope-arrow" aria-hidden="true">+</span>
+        </button>
+        <button class="scope-summary-toggle" type="button" aria-expanded="${summaryOpen}">Streszczenie</button>
+      </div>
+      <div class="scope-summary-panel">
+        <p>${escapeHtml(guide.overview)}</p>
+        <strong class="scope-summary-label">Najważniejsze wnioski</strong>
+        <ul>${guide.qa.map(([question, answer]) => `
+          <li><strong>${escapeHtml(question)}</strong><span>${escapeHtml(answer)}</span></li>
+        `).join('')}</ul>
+      </div>
       <div class="scope-content">
-        <p class="scope-overview">${escapeHtml(guide.overview)}</p>
         <div class="scope-content-head">
           <strong>${matchingTopics.length} tematów w rozdziale</strong>
           <button class="text-button" data-answer-chapter="${chapter.number}">Zobacz odpowiedzi →</button>
@@ -1397,12 +1426,20 @@ function renderScope() {
         <ol>${matchingTopics.map(topic => `<li>${escapeHtml(topic)}</li>`).join('')}</ol>
       </div>
     </article>
-  `).join('') : '<p class="concept-empty">Nie znaleziono takiego tematu w spisie treści.</p>';
+  `;
+  }).join('') : '<p class="concept-empty">Nie znaleziono takiego tematu ani informacji w streszczeniach.</p>';
 
   document.querySelectorAll('.scope-toggle').forEach(button => {
     button.addEventListener('click', () => {
       const chapter = button.closest('.scope-chapter');
-      const open = chapter.classList.toggle('open');
+      const open = chapter.classList.toggle('topics-open');
+      button.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.querySelectorAll('.scope-summary-toggle').forEach(button => {
+    button.addEventListener('click', () => {
+      const chapter = button.closest('.scope-chapter');
+      const open = chapter.classList.toggle('summary-open');
       button.setAttribute('aria-expanded', String(open));
     });
   });
@@ -1560,29 +1597,11 @@ function renderMath() {
   `).join('') : '<p class="concept-empty">Nie znaleziono wzoru dla tego filtra.</p>';
 }
 
-function renderConceptFilters() {
-  const letters = [...new Set(bookConcepts.map(item => item.term[0].toLocaleUpperCase('pl-PL')))]
-    .sort((a, b) => a.localeCompare(b, 'pl-PL'));
-  const filters = ['Wszystkie', ...letters];
-  $('#conceptFilters').innerHTML = filters.map(letter => `
-    <button class="filter ${letter === selectedLetter ? 'active' : ''}" data-letter="${escapeHtml(letter)}">${escapeHtml(letter)}</button>
-  `).join('');
-  document.querySelectorAll('[data-letter]').forEach(button => {
-    button.addEventListener('click', () => {
-      selectedLetter = button.dataset.letter;
-      renderConceptFilters();
-      renderConcepts();
-    });
-  });
-}
-
 function renderConcepts() {
   const query = $('#conceptSearch').value.trim().toLocaleLowerCase('pl-PL');
   const items = bookConcepts.map((item, index) => ({ ...item, chapter: studyCards[index]?.chapter })).filter(item => {
-    const matchesLetter = selectedLetter === 'Wszystkie'
-      || item.term[0].toLocaleUpperCase('pl-PL') === selectedLetter;
     const searchable = `${item.term} ${item.note || ''} ${item.definition}`.toLocaleLowerCase('pl-PL');
-    return matchesLetter && searchable.includes(query);
+    return searchable.includes(query);
   });
 
   $('#conceptCount').textContent = `Wyświetlono ${items.length} z ${bookConcepts.length} zagadnień`;
@@ -1595,7 +1614,7 @@ function renderConcepts() {
         <p>${escapeHtml(item.definition)}</p>
       </article>
     `).join('')
-    : '<p class="concept-empty">Nie znaleziono zagadnienia. Zmień literę lub wpisaną frazę.</p>';
+    : '<p class="concept-empty">Nie znaleziono zagadnienia. Spróbuj wpisać krótszą frazę.</p>';
 }
 
 document.querySelectorAll('[data-go]').forEach(button => {
@@ -1951,7 +1970,6 @@ renderCard();
 renderScope();
 renderAnswers();
 renderMath();
-renderConceptFilters();
 renderConcepts();
 renderNotifications();
 updateProgress();
