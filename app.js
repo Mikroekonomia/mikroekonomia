@@ -7,8 +7,16 @@ const studyRewardPoints = 20;
 const boostDurationMs = 30 * 60 * 1000;
 const notificationStorageKey = 'mankiw-taylor-notifications-v1';
 const notificationReadStorageKey = 'mankiw-taylor-notifications-read-v1';
+const flashcardDirectionStorageKey = 'mankiw-taylor-flashcard-direction-v1';
 
 const siteUpdateNotifications = [
+  {
+    id: 'update-reversed-flashcards-2026-08-17',
+    type: 'update',
+    title: 'Odwrócona kolejność fiszek',
+    message: 'Na fiszce możesz teraz ustawić, czy najpierw widzisz zagadnienie, czy jego wyjaśnienie.',
+    createdAt: '2026-08-17T22:00:00+02:00'
+  },
   {
     id: 'update-summaries-ranking-2026-08-17',
     type: 'update',
@@ -221,6 +229,12 @@ let cardTransitioning = false;
 let selectedQuizChapter = 'all';
 let selectedQuizLength = 20;
 let currentCard = 0;
+let flashcardDefinitionFirst = false;
+try {
+  flashcardDefinitionFirst = localStorage.getItem(flashcardDirectionStorageKey) === 'definition-first';
+} catch {
+  flashcardDefinitionFirst = false;
+}
 let quizSet = [];
 let quizIndex = 0;
 let quizScore = 0;
@@ -611,6 +625,11 @@ function readableAuthError(error) {
 function updateAccountUi() {
   const signedIn = Boolean(currentUser);
   const name = signedIn ? displayNameForUser() : 'Zaloguj się';
+  const homeAccountCta = $('#homeAccountCta');
+  if (homeAccountCta) {
+    homeAccountCta.innerHTML = signedIn ? 'Zobacz ranking <span>→</span>' : 'Zaloguj się <span>→</span>';
+    homeAccountCta.setAttribute('aria-label', signedIn ? 'Zobacz ranking uczniów' : 'Zaloguj się do konta ucznia');
+  }
   $('#accountLabel').textContent = name;
   $('#accountAvatar').textContent = signedIn ? initialsForName(name) : '?';
   $('#accountButton').classList.toggle('signed-in', signedIn);
@@ -951,6 +970,26 @@ function filteredCards() {
   });
 }
 
+function flashcardSides(card) {
+  const topicLabel = card.type.toLocaleUpperCase('pl-PL');
+  return flashcardDefinitionFirst
+    ? { front: card.back, back: card.front, frontLabel: 'WYJAŚNIENIE', backLabel: topicLabel }
+    : { front: card.front, back: card.back, frontLabel: topicLabel, backLabel: 'WYJAŚNIENIE' };
+}
+
+function updateFlashcardDirectionButton() {
+  const button = $('#reverseFlashcards');
+  button.classList.toggle('active', flashcardDefinitionFirst);
+  button.setAttribute('aria-pressed', String(flashcardDefinitionFirst));
+  button.setAttribute(
+    'aria-label',
+    flashcardDefinitionFirst ? 'Najpierw pokazuj zagadnienie' : 'Najpierw pokazuj wyjaśnienie'
+  );
+  button.title = flashcardDefinitionFirst
+    ? 'Teraz najpierw widzisz wyjaśnienie. Kliknij, aby zacząć od zagadnienia.'
+    : 'Odwróć wszystkie fiszki i zacznij od wyjaśnienia.';
+}
+
 function renderCard() {
   const cards = filteredCards();
   $('#flashcardPoolCount').textContent = `${polishCount(cards.length, 'zagadnienie', 'zagadnienia', 'zagadnień')} w tej puli${showStarredOnly ? ' · tylko trudne' : ''}`;
@@ -966,21 +1005,34 @@ function renderCard() {
     $('#cardBack').textContent = showStarredOnly ? 'Oznacz wybrane fiszki gwiazdką albo wyłącz filtr „Tylko trudne”.' : 'Wybierz całą książkę albo inny rozdział.';
     $('#cardHint').textContent = 'FILTR';
     $('#starCard').hidden = true;
+    $('#reverseFlashcards').hidden = true;
+    $('#flipInstruction').hidden = true;
     $('#recallActions').hidden = true;
     navigationButtons.forEach(button => { button.disabled = true; });
     return;
   }
   navigationButtons.forEach(button => { button.disabled = false; });
   $('#starCard').hidden = false;
+  $('#reverseFlashcards').hidden = false;
 
   $('#flashcard').classList.remove('is-flipped');
   $('#cardFront').setAttribute('aria-hidden', 'false');
   $('#cardBack').setAttribute('aria-hidden', 'true');
   $('#cardPosition').textContent = `${currentCard + 1} / ${cards.length}`;
   $('#cardPage').textContent = card.chapter ? `ROZDZIAŁ ${card.chapter}` : 'SŁOWNIK';
-  $('#cardFront').textContent = card.front;
-  $('#cardBack').textContent = card.back;
-  $('#cardHint').textContent = card.type.toLocaleUpperCase('pl-PL');
+  const sides = flashcardSides(card);
+  $('#cardFront').textContent = sides.front;
+  $('#cardBack').textContent = sides.back;
+  $('#cardHint').textContent = sides.frontLabel;
+  $('#flashcard').setAttribute(
+    'aria-label',
+    flashcardDefinitionFirst ? 'Odwróć fiszkę i zobacz zagadnienie' : 'Odwróć fiszkę i zobacz wyjaśnienie'
+  );
+  $('#flipInstruction').hidden = currentCard !== 0;
+  $('#flipInstruction').innerHTML = flashcardDefinitionFirst
+    ? 'Kliknij, aby zobaczyć zagadnienie <b>↻</b>'
+    : 'Kliknij, aby zobaczyć definicję <b>↻</b>';
+  updateFlashcardDirectionButton();
   const isStarred = progress.starred.includes(card.id);
   $('#starCard').classList.toggle('active', isStarred);
   $('#starCard').setAttribute('aria-pressed', String(isStarred));
@@ -994,10 +1046,24 @@ function flipCard() {
   const element = $('#flashcard');
   const flipped = element.classList.toggle('is-flipped');
   const card = filteredCards()[currentCard];
+  const sides = flashcardSides(card);
   $('#cardFront').setAttribute('aria-hidden', String(flipped));
   $('#cardBack').setAttribute('aria-hidden', String(!flipped));
-  $('#cardHint').textContent = flipped ? 'WYJAŚNIENIE' : card.type.toLocaleUpperCase('pl-PL');
+  $('#cardHint').textContent = flipped ? sides.backLabel : sides.frontLabel;
   $('#recallActions').hidden = !flipped;
+}
+
+function toggleFlashcardDirection() {
+  flashcardDefinitionFirst = !flashcardDefinitionFirst;
+  try {
+    localStorage.setItem(
+      flashcardDirectionStorageKey,
+      flashcardDefinitionFirst ? 'definition-first' : 'topic-first'
+    );
+  } catch {
+    // Preferencja nadal działa do końca bieżącej sesji.
+  }
+  renderCard();
 }
 
 function recall(type) {
@@ -1641,6 +1707,7 @@ $('#starredFilter').addEventListener('click', () => {
 
 $('#flashcard').addEventListener('click', flipCard);
 $('#starCard').addEventListener('click', toggleStarredCard);
+$('#reverseFlashcards').addEventListener('click', toggleFlashcardDirection);
 $('#prevCard').addEventListener('click', () => navigateCard(-1));
 $('#nextCard').addEventListener('click', () => navigateCard(1));
 document.querySelectorAll('[data-recall]').forEach(button => {
@@ -1888,6 +1955,10 @@ $('#pointsMenuClose').addEventListener('click', () => setPointsMenu(false));
 $('#pointsBackdrop').addEventListener('click', () => setPointsMenu(false));
 $('#activateBoost').addEventListener('click', activateDailyBoost);
 $('#accountButton').addEventListener('click', () => setAuthModal($('#authModal').hidden));
+$('#homeAccountCta').addEventListener('click', () => {
+  if (currentUser) switchMode('leaderboard');
+  else setAuthModal(true);
+});
 $('#authClose').addEventListener('click', () => setAuthModal(false));
 $('#authBackdrop').addEventListener('click', () => setAuthModal(false));
 $('#emailConfirmationClose').addEventListener('click', closeEmailConfirmation);
