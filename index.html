@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=20260820-auth3" />
+    <link rel="stylesheet" href="styles.css?v=20260820-avatar" />
   </head>
   <body class="home-active auth-locked">
     <div class="page-shell">
@@ -461,6 +461,17 @@
           <span class="profile-avatar" id="profileAvatar" aria-hidden="true">U</span>
           <div><strong id="profileName">Uczeń</strong><small id="profileEmail"></small></div>
           <p id="profileSyncStatus">Postęp jest synchronizowany.</p>
+          <form class="profile-avatar-form" id="profileAvatarForm">
+            <strong>Zdjęcie profilowe</strong>
+            <div class="profile-avatar-actions">
+              <label class="avatar-file-button" for="profileAvatarInput">Wybierz zdjęcie</label>
+              <input class="sr-only" id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" />
+              <button class="secondary-button" id="profileAvatarSave" type="submit" disabled>Zapisz zdjęcie</button>
+              <button class="text-button" id="profileAvatarRemove" type="button" hidden>Usuń</button>
+            </div>
+            <small>JPG, PNG lub WebP · maksymalnie 2 MB</small>
+            <small class="profile-avatar-feedback" id="profileAvatarFeedback" aria-live="polite"></small>
+          </form>
           <form class="profile-name-form" id="profileNameForm">
             <label for="profileNameInput">Nazwa użytkownika</label>
             <div>
@@ -507,8 +518,8 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
-    <script src="book-data.js?v=20260820-auth3"></script>
-    <script src="curriculum-data.js?v=20260820-auth3"></script>
-    <script src="app.js?v=20260820-auth3"></script>
+    <script src="book-data.js?v=20260820-avatar"></script>
+    <script src="curriculum-data.js?v=20260820-avatar"></script>
+    <script src="app.js?v=20260820-avatar"></script>
   </body>
 </html>
