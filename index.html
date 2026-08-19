@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260820-auth3" />
   </head>
-  <body class="home-active">
+  <body class="home-active auth-locked">
     <div class="page-shell">
       <header class="topbar">
         <a class="brand" href="#start" aria-label="Mikroekonomia - strona główna">
@@ -438,6 +438,7 @@
           <p class="auth-copy">Logowanie wymaga jednorazowego połączenia strony z projektem Supabase. Instrukcja znajduje się w pliku <strong>SUPABASE_SETUP.md</strong>.</p>
         </div>
         <div id="authSignedOut">
+          <p class="auth-copy auth-gate-copy">Zaloguj się lub utwórz konto, aby korzystać z fiszek, quizów, testów i pozostałych materiałów.</p>
           <div class="auth-tabs" role="tablist" aria-label="Logowanie lub rejestracja">
             <button class="active" id="loginTab" type="button" role="tab" aria-selected="true">Logowanie</button>
             <button id="registerTab" type="button" role="tab" aria-selected="false">Rejestracja</button>
@@ -460,6 +461,14 @@
           <span class="profile-avatar" id="profileAvatar" aria-hidden="true">U</span>
           <div><strong id="profileName">Uczeń</strong><small id="profileEmail"></small></div>
           <p id="profileSyncStatus">Postęp jest synchronizowany.</p>
+          <form class="profile-name-form" id="profileNameForm">
+            <label for="profileNameInput">Nazwa użytkownika</label>
+            <div>
+              <input id="profileNameInput" type="text" autocomplete="nickname" minlength="2" maxlength="30" required />
+              <button class="secondary-button" id="profileNameSave" type="submit">Zapisz</button>
+            </div>
+            <small class="profile-name-feedback" id="profileNameFeedback" aria-live="polite"></small>
+          </form>
           <button class="primary-button" id="profileLeaderboard" type="button">Zobacz ranking</button>
           <button class="text-button" id="logoutButton" type="button">Wyloguj się</button>
           <section class="danger-zone">
@@ -498,8 +507,8 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
-    <script src="book-data.js"></script>
-    <script src="curriculum-data.js"></script>
-    <script src="app.js"></script>
+    <script src="book-data.js?v=20260820-auth3"></script>
+    <script src="curriculum-data.js?v=20260820-auth3"></script>
+    <script src="app.js?v=20260820-auth3"></script>
   </body>
 </html>

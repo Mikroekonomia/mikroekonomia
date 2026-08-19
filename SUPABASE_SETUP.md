@@ -1,6 +1,6 @@
 # Logowanie, zapis postępu i ranking — konfiguracja
 
-Strona jest gotowa do pracy z Supabase. Bez poniższej konfiguracji nadal działa lokalnie, ale logowanie i ranking pozostają wyłączone.
+Strona wymaga zalogowania, dlatego przed udostępnieniem jej uczniom trzeba połączyć ją z Supabase. Bez poniższej konfiguracji materiały pozostają zablokowane.
 
 ## 1. Utwórz projekt
 
@@ -42,15 +42,18 @@ Po dodaniu dziennego boosta lub usuwania konta ponownie uruchom **cały** plik `
 
 ## 5. Opublikuj
 
-Dodaj do repozytorium wszystkie pliki strony, w tym `supabase-config.js`, `supabase-setup.sql` i `SUPABASE_SETUP.md`, a następnie opublikuj GitHub Pages. Po wejściu na stronę uczniowie mogą utworzyć konto, potwierdzić e-mail, zalogować się i zobaczyć ranking.
+Dodaj do repozytorium wszystkie pliki strony, w tym `supabase-config.js`, `supabase-setup.sql` i `SUPABASE_SETUP.md`, a następnie opublikuj GitHub Pages. Po wejściu na stronę uczniowie muszą utworzyć konto lub się zalogować, aby uzyskać dostęp do materiałów i rankingu.
+
+Po zalogowaniu nazwę użytkownika można zmienić w oknie **Konto ucznia**. Zmiana jest zapisywana w profilu i od razu widoczna w rankingu.
 
 ## Co jest zapisywane
 
 - punkty i ranga,
 - opanowane i oznaczone gwiazdką fiszki,
 - liczba ukończonych quizów i testów,
-- naliczony aktywny czas nauki.
-- datę i czas aktywacji dziennego boosta punktów.
+- naliczony aktywny czas nauki,
+- datę i czas aktywacji dziennego boosta punktów,
+- nazwę użytkownika widoczną w profilu i rankingu.
 
 Przy pierwszym logowaniu lokalny postęp z danego urządzenia jest łączony z kontem. Kolejne logowania pobierają go na innych urządzeniach. Wylogowanie usuwa lokalną kopię postępu z bieżącej przeglądarki, aby nie pokazać jej następnej osobie.
 

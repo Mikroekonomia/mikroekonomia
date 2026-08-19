@@ -575,6 +575,13 @@ function setAuthFeedback(message = '', state = '') {
   feedback.dataset.state = state;
 }
 
+function setProfileNameFeedback(message = '', state = '') {
+  const feedback = $('#profileNameFeedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.dataset.state = state;
+}
+
 function readableAuthError(error) {
   const message = String(error?.message || error || 'Nie udało się wykonać operacji.');
   if (/invalid login credentials/i.test(message)) return 'Nieprawidłowy e-mail lub hasło.';
@@ -607,11 +614,33 @@ function updateAccountUi() {
     $('#profileName').textContent = name;
     $('#profileEmail').textContent = currentUser.email || '';
     $('#profileAvatar').textContent = initialsForName(name);
+    if (document.activeElement !== $('#profileNameInput')) $('#profileNameInput').value = name;
     setCloudStatus('Postęp zsynchronizowany', 'success');
   } else if (supabaseConfigured) {
     setCloudStatus('Zaloguj się, aby synchronizować postęp', 'local');
   } else {
     setCloudStatus('Postęp lokalny · skonfiguruj Supabase', 'local');
+  }
+}
+
+function updateAuthGate({ closeAfterUnlock = false } = {}) {
+  const locked = !currentUser;
+  document.body.classList.toggle('auth-locked', locked);
+  document.querySelectorAll('.topbar, main, footer').forEach(element => {
+    element.inert = locked;
+    element.toggleAttribute('inert', locked);
+    if (locked) element.setAttribute('aria-hidden', 'true');
+    else element.removeAttribute('aria-hidden');
+  });
+  $('#authClose').hidden = locked;
+  $('#authBackdrop').setAttribute('aria-label', locked ? 'Logowanie wymagane' : 'Zamknij okno konta');
+  if (locked) {
+    if (document.body.classList.contains('focus-mode')) exitFocusMode();
+    setAppMenu(false, { returnFocus: false });
+    setPointsMenu(false);
+    setAuthModal(true);
+  } else if (closeAfterUnlock && $('#emailConfirmationPopup').hidden) {
+    setAuthModal(false);
   }
 }
 
@@ -785,10 +814,12 @@ async function applyAuthSession(session, { initial = false } = {}) {
     }
     updateAccountUi();
   }
+  updateAuthGate({ closeAfterUnlock: Boolean(currentUser && !previousUserId) });
 }
 
 async function initializeCloud() {
   updateAccountUi();
+  updateAuthGate();
   if (!supabaseConfigured) {
     loadLeaderboard();
     return;
@@ -860,7 +891,7 @@ function tickStudyTime() {
   const now = Date.now();
   const elapsed = Math.min(2, Math.max(0, (now - lastStudyTick) / 1000));
   lastStudyTick = now;
-  if (document.visibilityState !== 'visible') return;
+  if (!currentUser || document.visibilityState !== 'visible') return;
 
   progress.studySeconds += elapsed;
   unsavedStudySeconds += elapsed;
@@ -887,6 +918,10 @@ function persistStudyTime() {
 }
 
 function switchMode(mode) {
+  if (!currentUser) {
+    setAuthModal(true);
+    return;
+  }
   if (document.body.classList.contains('focus-mode')) exitFocusMode();
   const secondaryModes = ['test', 'answers', 'scope', 'math'];
   const menuMode = secondaryModes.includes(mode) ? 'more' : mode;
@@ -1782,6 +1817,7 @@ function setAuthMode(mode) {
 }
 
 function setAuthModal(open) {
+  if (!open && !currentUser && $('#emailConfirmationPopup').hidden) return;
   if (open) setAppMenu(false, { returnFocus: false });
   $('#authModal').hidden = !open;
   $('#authBackdrop').hidden = !open;
@@ -1797,6 +1833,50 @@ function setAuthModal(open) {
   } else {
     const target = $('#appMenu').hidden ? $('#appMenuButton') : $('#accountButton');
     target?.focus();
+  }
+}
+
+async function handleProfileNameUpdate(event) {
+  event.preventDefault();
+  if (!cloudClient || !currentUser) return;
+  const input = $('#profileNameInput');
+  const button = $('#profileNameSave');
+  const displayName = input.value.trim().replace(/\s+/g, ' ');
+  if (displayName.length < 2 || displayName.length > 30) {
+    setProfileNameFeedback('Nazwa musi mieć od 2 do 30 znaków.', 'error');
+    return;
+  }
+  if (displayName === displayNameForUser()) {
+    setProfileNameFeedback('To jest już Twoja aktualna nazwa.', 'success');
+    return;
+  }
+
+  button.disabled = true;
+  input.disabled = true;
+  setProfileNameFeedback('Zapisywanie…', 'working');
+  try {
+    const { error: profileError } = await cloudClient
+      .from('profiles')
+      .update({ display_name: displayName, updated_at: new Date().toISOString() })
+      .eq('id', currentUser.id);
+    if (profileError) throw profileError;
+
+    const { data, error: metadataError } = await cloudClient.auth.updateUser({
+      data: { display_name: displayName }
+    });
+    if (metadataError) console.warn('Nazwa profilu została zapisana bez aktualizacji metadanych konta:', metadataError);
+    if (data?.user) currentUser = data.user;
+    currentProfile = { ...(currentProfile || {}), id: currentUser.id, display_name: displayName };
+    input.value = displayName;
+    updateAccountUi();
+    setProfileNameFeedback('Nazwa użytkownika została zmieniona.', 'success');
+    await loadLeaderboard({ silent: true });
+  } catch (error) {
+    console.error('Nie udało się zmienić nazwy użytkownika:', error);
+    setProfileNameFeedback(readableAuthError(error), 'error');
+  } finally {
+    button.disabled = false;
+    input.disabled = false;
   }
 }
 
@@ -1930,6 +2010,7 @@ $('#loginTab').addEventListener('click', () => setAuthMode('login'));
 $('#registerTab').addEventListener('click', () => setAuthMode('register'));
 $('#loginForm').addEventListener('submit', handleLogin);
 $('#registerForm').addEventListener('submit', handleRegister);
+$('#profileNameForm').addEventListener('submit', handleProfileNameUpdate);
 $('#deleteAccountConfirmation').addEventListener('input', event => {
   $('#deleteAccountButton').disabled = event.target.value.trim() !== 'USUŃ';
 });
