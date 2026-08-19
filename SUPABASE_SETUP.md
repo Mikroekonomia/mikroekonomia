@@ -38,13 +38,13 @@ W **Authentication → Providers → Email** pozostaw włączone logowanie e-mai
 
 ## 4. Po aktualizacji funkcji konta
 
-Po dodaniu zdjęć profilowych, dziennego boosta lub usuwania konta ponownie uruchom **cały** plik `supabase-setup.sql` w **SQL Editor → Run**. Skrypt jest przygotowany do bezpiecznego ponownego uruchomienia: zachowuje istniejące konta, punkty i postęp, a dodaje brakujące kolumny, bucket `avatars`, zasady dostępu oraz funkcję usuwania własnego konta.
+Po dodaniu dziennego boosta lub usuwania konta ponownie uruchom **cały** plik `supabase-setup.sql` w **SQL Editor → Run**. Skrypt jest przygotowany do bezpiecznego ponownego uruchomienia: zachowuje istniejące konta, punkty i postęp, a tylko dodaje brakujące kolumny oraz funkcję usuwania własnego konta.
 
 ## 5. Opublikuj
 
 Dodaj do repozytorium wszystkie pliki strony, w tym `supabase-config.js`, `supabase-setup.sql` i `SUPABASE_SETUP.md`, a następnie opublikuj GitHub Pages. Po wejściu na stronę uczniowie muszą utworzyć konto lub się zalogować, aby uzyskać dostęp do materiałów i rankingu.
 
-Po zalogowaniu nazwę użytkownika i zdjęcie profilowe można zmienić w oknie **Konto ucznia**. Zmiany są zapisywane w profilu i od razu widoczne w menu oraz rankingu. Zdjęcia są publicznymi elementami profilu; dozwolone formaty to JPG, PNG i WebP, a limit pliku wynosi 2 MB.
+Po zalogowaniu nazwę użytkownika można zmienić w oknie **Konto ucznia**. Zmiana jest zapisywana w profilu i od razu widoczna w rankingu.
 
 ## Co jest zapisywane
 
@@ -53,8 +53,7 @@ Po zalogowaniu nazwę użytkownika i zdjęcie profilowe można zmienić w oknie 
 - liczba ukończonych quizów i testów,
 - naliczony aktywny czas nauki,
 - datę i czas aktywacji dziennego boosta punktów,
-- nazwę użytkownika widoczną w profilu i rankingu,
-- adres publicznego zdjęcia profilowego; sam plik znajduje się w Supabase Storage.
+- nazwę użytkownika widoczną w profilu i rankingu.
 
 Przy pierwszym logowaniu lokalny postęp z danego urządzenia jest łączony z kontem. Kolejne logowania pobierają go na innych urządzeniach. Wylogowanie usuwa lokalną kopię postępu z bieżącej przeglądarki, aby nie pokazać jej następnej osobie.
 

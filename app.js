@@ -217,7 +217,6 @@ let authInitialized = false;
 let cloudSyncTimer = null;
 let cloudSyncRunning = false;
 let cloudSyncQueued = false;
-let profileAvatarPreviewUrl = '';
 const supabaseSettings = window.SUPABASE_CONFIG || {};
 const supabaseConfigured = Boolean(
   window.supabase?.createClient
@@ -557,46 +556,6 @@ function initialsForName(name) {
   return initials.toLocaleUpperCase('pl-PL') || 'U';
 }
 
-function safeAvatarUrl(value) {
-  const rawValue = String(value || '').trim();
-  if (!rawValue) return '';
-  try {
-    const avatarUrl = new URL(rawValue);
-    const projectUrl = new URL(String(supabaseSettings.url || ''));
-    const expectedPath = '/storage/v1/object/public/avatars/';
-    if (avatarUrl.origin !== projectUrl.origin || !avatarUrl.pathname.startsWith(expectedPath)) return '';
-    return avatarUrl.href;
-  } catch {
-    return '';
-  }
-}
-
-function avatarUrlForUser(user = currentUser) {
-  return safeAvatarUrl(currentProfile?.avatar_url || user?.user_metadata?.avatar_url || '');
-}
-
-function paintAvatarElement(element, name, imageUrl = '') {
-  if (!element) return;
-  const hasImage = Boolean(imageUrl);
-  element.textContent = hasImage ? '' : initialsForName(name);
-  element.style.backgroundImage = hasImage ? `url("${String(imageUrl).replaceAll('"', '%22')}")` : '';
-  element.classList.toggle('has-image', hasImage);
-}
-
-function renderAvatarElement(element, name, avatarUrl = '') {
-  paintAvatarElement(element, name, safeAvatarUrl(avatarUrl));
-}
-
-function clearProfileAvatarPreview({ restore = true } = {}) {
-  if (profileAvatarPreviewUrl) URL.revokeObjectURL(profileAvatarPreviewUrl);
-  profileAvatarPreviewUrl = '';
-  const input = $('#profileAvatarInput');
-  const saveButton = $('#profileAvatarSave');
-  if (input) input.value = '';
-  if (saveButton) saveButton.disabled = true;
-  if (restore && currentUser) renderAvatarElement($('#profileAvatar'), displayNameForUser(), avatarUrlForUser());
-}
-
 function setCloudStatus(message, state = '') {
   const status = $('#cloudStatus');
   const profileStatus = $('#profileSyncStatus');
@@ -623,13 +582,6 @@ function setProfileNameFeedback(message = '', state = '') {
   feedback.dataset.state = state;
 }
 
-function setProfileAvatarFeedback(message = '', state = '') {
-  const feedback = $('#profileAvatarFeedback');
-  if (!feedback) return;
-  feedback.textContent = message;
-  feedback.dataset.state = state;
-}
-
 function readableAuthError(error) {
   const message = String(error?.message || error || 'Nie udało się wykonać operacji.');
   if (/invalid login credentials/i.test(message)) return 'Nieprawidłowy e-mail lub hasło.';
@@ -649,8 +601,7 @@ function updateAccountUi() {
     homeAccountCta.setAttribute('aria-label', signedIn ? 'Zobacz ranking uczniów' : 'Zaloguj się do konta ucznia');
   }
   $('#accountLabel').textContent = name;
-  const avatarUrl = signedIn ? avatarUrlForUser() : '';
-  renderAvatarElement($('#accountAvatar'), signedIn ? name : '?', avatarUrl);
+  $('#accountAvatar').textContent = signedIn ? initialsForName(name) : '?';
   $('#accountButton').classList.toggle('signed-in', signedIn);
   $('#accountMenuStatus').textContent = signedIn ? 'Konto i synchronizacja postępu' : 'Zaloguj się lub utwórz konto';
   $('#authUnavailable').hidden = supabaseConfigured;
@@ -662,19 +613,12 @@ function updateAccountUi() {
   if (signedIn) {
     $('#profileName').textContent = name;
     $('#profileEmail').textContent = currentUser.email || '';
-    if (!profileAvatarPreviewUrl) renderAvatarElement($('#profileAvatar'), name, avatarUrl);
-    $('#profileAvatarRemove').hidden = !avatarUrl;
+    $('#profileAvatar').textContent = initialsForName(name);
     if (document.activeElement !== $('#profileNameInput')) $('#profileNameInput').value = name;
     setCloudStatus('Postęp zsynchronizowany', 'success');
   } else if (supabaseConfigured) {
-    clearProfileAvatarPreview({ restore: false });
-    renderAvatarElement($('#profileAvatar'), 'U');
-    $('#profileAvatarRemove').hidden = true;
     setCloudStatus('Zaloguj się, aby synchronizować postęp', 'local');
   } else {
-    clearProfileAvatarPreview({ restore: false });
-    renderAvatarElement($('#profileAvatar'), 'U');
-    $('#profileAvatarRemove').hidden = true;
     setCloudStatus('Postęp lokalny · skonfiguruj Supabase', 'local');
   }
 }
@@ -746,7 +690,7 @@ async function loadCloudProgress() {
   setCloudStatus('Pobieranie postępu…', 'working');
   try {
     const [profileResult, progressResult] = await Promise.all([
-      cloudClient.from('profiles').select('id, display_name, avatar_url, points, updated_at').eq('id', currentUser.id).maybeSingle(),
+      cloudClient.from('profiles').select('id, display_name, points, updated_at').eq('id', currentUser.id).maybeSingle(),
       cloudClient.from('study_progress').select('*').eq('user_id', currentUser.id).maybeSingle()
     ]);
     if (profileResult.error) throw profileResult.error;
@@ -754,7 +698,6 @@ async function loadCloudProgress() {
     currentProfile = profileResult.data || {
       id: currentUser.id,
       display_name: displayNameForUser(currentUser),
-      avatar_url: avatarUrlForUser(currentUser) || null,
       points: 0
     };
     progress = mergeProgress(progress, cloudRowToProgress(progressResult.data));
@@ -784,16 +727,12 @@ function renderLeaderboardRows(items = []) {
     return `
       <article class="leaderboard-row ${item.id === currentUser?.id ? 'current-user' : ''} ${index < 3 ? `podium podium-${index + 1}` : ''}">
         <span class="leaderboard-position" ${index === 0 ? 'title="Lider rankingu"' : ''}>${index === 0 ? '<i aria-hidden="true">♛</i><b>1</b>' : index + 1}</span>
-        <span class="leaderboard-avatar" data-avatar-index="${index}" aria-hidden="true">${escapeHtml(initialsForName(name))}</span>
+        <span class="leaderboard-avatar" aria-hidden="true">${escapeHtml(initialsForName(name))}</span>
         <div><strong>${escapeHtml(name)}</strong><small>${escapeHtml(rank.name)}</small></div>
         <b>${points} pkt</b>
       </article>
     `;
   }).join('');
-  items.forEach((item, index) => {
-    const name = String(item.display_name || 'Uczeń').slice(0, 30);
-    renderAvatarElement(list.querySelector(`[data-avatar-index="${index}"]`), name, item.avatar_url);
-  });
 }
 
 function evaluateLeaderboardMovement(items = []) {
@@ -838,7 +777,7 @@ async function loadLeaderboard({ silent = false } = {}) {
   try {
     const { data, error } = await cloudClient
       .from('profiles')
-      .select('id, display_name, avatar_url, points, updated_at')
+      .select('id, display_name, points, updated_at')
       .order('points', { ascending: false })
       .order('updated_at', { ascending: true })
       .limit(100);
@@ -1897,126 +1836,6 @@ function setAuthModal(open) {
   }
 }
 
-function handleProfileAvatarSelection(event) {
-  const file = event.target.files?.[0];
-  const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
-  if (!file) {
-    clearProfileAvatarPreview();
-    setProfileAvatarFeedback();
-    return;
-  }
-  if (!allowedTypes.has(file.type)) {
-    clearProfileAvatarPreview();
-    setProfileAvatarFeedback('Wybierz plik JPG, PNG lub WebP.', 'error');
-    return;
-  }
-  if (!file.size || file.size > 2 * 1024 * 1024) {
-    clearProfileAvatarPreview();
-    setProfileAvatarFeedback('Zdjęcie może mieć maksymalnie 2 MB.', 'error');
-    return;
-  }
-
-  if (profileAvatarPreviewUrl) URL.revokeObjectURL(profileAvatarPreviewUrl);
-  profileAvatarPreviewUrl = URL.createObjectURL(file);
-  paintAvatarElement($('#profileAvatar'), displayNameForUser(), profileAvatarPreviewUrl);
-  $('#profileAvatarSave').disabled = false;
-  setProfileAvatarFeedback(`${file.name} · gotowe do zapisania`);
-}
-
-async function handleProfileAvatarUpload(event) {
-  event.preventDefault();
-  if (!cloudClient || !currentUser) return;
-  const input = $('#profileAvatarInput');
-  const saveButton = $('#profileAvatarSave');
-  const file = input.files?.[0];
-  if (!file) {
-    setProfileAvatarFeedback('Najpierw wybierz zdjęcie.', 'error');
-    return;
-  }
-
-  input.disabled = true;
-  saveButton.disabled = true;
-  $('#profileAvatarRemove').disabled = true;
-  setProfileAvatarFeedback('Przesyłanie zdjęcia…', 'working');
-  try {
-    const avatarPath = `${currentUser.id}/avatar`;
-    const { error: uploadError } = await cloudClient.storage
-      .from('avatars')
-      .upload(avatarPath, file, {
-        upsert: true,
-        contentType: file.type,
-        cacheControl: '3600'
-      });
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = cloudClient.storage.from('avatars').getPublicUrl(avatarPath);
-    const avatarUrl = safeAvatarUrl(`${publicUrlData.publicUrl}?v=${Date.now()}`);
-    if (!avatarUrl) throw new Error('Nie udało się utworzyć bezpiecznego adresu zdjęcia.');
-
-    const { error: profileError } = await cloudClient
-      .from('profiles')
-      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
-      .eq('id', currentUser.id);
-    if (profileError) throw profileError;
-
-    const { data, error: metadataError } = await cloudClient.auth.updateUser({
-      data: { avatar_url: avatarUrl }
-    });
-    if (metadataError) console.warn('Zdjęcie profilu zapisano bez aktualizacji metadanych konta:', metadataError);
-    if (data?.user) currentUser = data.user;
-    currentProfile = { ...(currentProfile || {}), id: currentUser.id, avatar_url: avatarUrl };
-    clearProfileAvatarPreview();
-    updateAccountUi();
-    setProfileAvatarFeedback('Zdjęcie profilowe zostało zapisane.', 'success');
-    await loadLeaderboard({ silent: true });
-  } catch (error) {
-    console.error('Nie udało się zapisać zdjęcia profilowego:', error);
-    setProfileAvatarFeedback(readableAuthError(error), 'error');
-    saveButton.disabled = false;
-  } finally {
-    input.disabled = false;
-    $('#profileAvatarRemove').disabled = false;
-  }
-}
-
-async function handleProfileAvatarRemove() {
-  if (!cloudClient || !currentUser || !avatarUrlForUser()) return;
-  if (!window.confirm('Usunąć zdjęcie profilowe?')) return;
-  const removeButton = $('#profileAvatarRemove');
-  removeButton.disabled = true;
-  $('#profileAvatarInput').disabled = true;
-  $('#profileAvatarSave').disabled = true;
-  setProfileAvatarFeedback('Usuwanie zdjęcia…', 'working');
-  try {
-    const { error: profileError } = await cloudClient
-      .from('profiles')
-      .update({ avatar_url: null, updated_at: new Date().toISOString() })
-      .eq('id', currentUser.id);
-    if (profileError) throw profileError;
-
-    const avatarPath = `${currentUser.id}/avatar`;
-    const { error: storageError } = await cloudClient.storage.from('avatars').remove([avatarPath]);
-    if (storageError) console.warn('Profil zaktualizowano, ale nie udało się usunąć starego pliku:', storageError);
-
-    const { data, error: metadataError } = await cloudClient.auth.updateUser({
-      data: { avatar_url: null }
-    });
-    if (metadataError) console.warn('Zdjęcie usunięto bez aktualizacji metadanych konta:', metadataError);
-    if (data?.user) currentUser = data.user;
-    currentProfile = { ...(currentProfile || {}), id: currentUser.id, avatar_url: null };
-    clearProfileAvatarPreview();
-    updateAccountUi();
-    setProfileAvatarFeedback('Zdjęcie profilowe zostało usunięte.', 'success');
-    await loadLeaderboard({ silent: true });
-  } catch (error) {
-    console.error('Nie udało się usunąć zdjęcia profilowego:', error);
-    setProfileAvatarFeedback(readableAuthError(error), 'error');
-  } finally {
-    removeButton.disabled = false;
-    $('#profileAvatarInput').disabled = false;
-  }
-}
-
 async function handleProfileNameUpdate(event) {
   event.preventDefault();
   if (!cloudClient || !currentUser) return;
@@ -2191,9 +2010,6 @@ $('#loginTab').addEventListener('click', () => setAuthMode('login'));
 $('#registerTab').addEventListener('click', () => setAuthMode('register'));
 $('#loginForm').addEventListener('submit', handleLogin);
 $('#registerForm').addEventListener('submit', handleRegister);
-$('#profileAvatarInput').addEventListener('change', handleProfileAvatarSelection);
-$('#profileAvatarForm').addEventListener('submit', handleProfileAvatarUpload);
-$('#profileAvatarRemove').addEventListener('click', handleProfileAvatarRemove);
 $('#profileNameForm').addEventListener('submit', handleProfileNameUpdate);
 $('#deleteAccountConfirmation').addEventListener('input', event => {
   $('#deleteAccountButton').disabled = event.target.value.trim() !== 'USUŃ';
