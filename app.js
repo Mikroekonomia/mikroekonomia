@@ -384,44 +384,7 @@ const allAnswerEntries = [
 ];
 
 function inferConceptChapter(concept) {
-  const term = normalizeText(concept.term);
-  const termTokens = searchTokens(concept.term).filter(token => token.length >= 4);
-  const definitionTokens = searchTokens(concept.definition).filter(token => token.length >= 6);
-  const ranked = bookChapters.map(chapter => {
-    const outline = fullBookOutline.find(item => item.number === chapter.number);
-    const guide = chapterGuides.find(item => item.number === chapter.number);
-    const formulas = formulaCatalog.filter(item => item.chapter === chapter.number);
-    const chapterCorpus = normalizeText([
-      chapter.title,
-      outline?.topics.join(' '),
-      guide?.overview,
-      guide?.qa.flat().join(' '),
-      formulas.map(formula => Object.values(formula).join(' ')).join(' ')
-    ].join(' '));
-    let score = 0;
-    if (normalizeText(chapter.title).includes(term)) score += 12;
-    outline?.topics.forEach(topic => {
-      const normalized = normalizeText(topic);
-      if (normalized === term) score += 16;
-      else if (normalized.includes(term)) score += 8;
-    });
-    guide?.qa.forEach(([question, answer]) => {
-      if (normalizeText(question).includes(term)) score += 6;
-      if (normalizeText(answer).includes(term)) score += 2;
-    });
-    formulas.forEach(formula => {
-      if (normalizeText(`${formula.name} ${formula.group}`).includes(term)) score += 7;
-      if (normalizeText(`${formula.use} ${formula.variables}`).includes(term)) score += 2;
-    });
-    termTokens.forEach(token => {
-      if (chapterCorpus.includes(token)) score += 3;
-    });
-    definitionTokens.forEach(token => {
-      if (chapterCorpus.includes(token)) score += 0.35;
-    });
-    return { chapter: chapter.number, score };
-  }).sort((a, b) => b.score - a.score);
-  return ranked[0]?.score >= 1 ? ranked[0].chapter : null;
+  return conceptChapterAssignments[concept.term] ?? null;
 }
 
 const studyCards = bookConcepts.map((item, index) => {

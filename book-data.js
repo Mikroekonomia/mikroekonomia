@@ -293,3 +293,155 @@ const bookConcepts = [
   { term: 'Zysk nadzwyczajny', definition: 'Nadwyżka zysku ponad zysk normalny.', page: 750 },
   { term: 'Zysk normalny', definition: 'Minimalna kwota niezbędna do utrzymania obecnego sposobu wykorzystania czynników produkcji.', page: 750 }
 ];
+
+// Jawne przypisania pojęć ze słownika do rozdziałów, w których są one
+// wprowadzane lub omawiane zasadniczo. Nie należy zastępować tej mapy
+// dopasowaniem tekstowym: podobne słowa występują w wielu rozdziałach.
+const conceptChapterAssignments = Object.freeze(Object.fromEntries([
+  [1, [
+    'Aktywność gospodarcza', 'Barter', 'Ekonomia', 'Gospodarka',
+    'Gospodarka planowa', 'Gospodarka rynkowa', 'Inflacja', 'Instytucje',
+    'Kompromis', 'Makroekonomia', 'Mikroekonomia', 'Podmiot ekonomiczny',
+    'Poziom życia', 'Produkt krajowy brutto per capita (na jednego mieszkańca)',
+    'Rzadkość zasobów', 'System ekonomiczny',
+    'System kapitalistyczny', 'Wydajność', 'Wzrost gospodarczy',
+    'Zmiany krańcowe'
+  ]],
+  [2, [
+    'Ceteris paribus', 'Ekonomia heterodoksyjna', 'Falsyfikowalność',
+    'Hipoteza', 'Sądy normatywne', 'Sądy pozytywne',
+    'Scenariusz alternatywny', 'Statyczna analiza porównawcza',
+    'Uogólnienie', 'Wnioskowanie', 'Zmienna egzogeniczna',
+    'Zmienna endogeniczna'
+  ]],
+  [3, [
+    'Cena równowagi (cena rynkowa)', 'Dobra komplementarne',
+    'Dobra substytucyjne', 'Dobro niższego rzędu', 'Dobro normalne',
+    'Ilość oferowana', 'Ilość równowagi', 'Krzywa podaży',
+    'Krzywa popytu', 'Nadwyżka', 'Niedobór', 'Plan podaży',
+    'Plan popytu', 'Prawo podaży', 'Prawo podaży i popytu',
+    'Prawo popytu', 'Rynek', 'Rynek konkurencyjny',
+    'Wielkość zapotrzebowania'
+  ]],
+  [4, [
+    'Elastyczność', 'Elastyczność cenowa podaży',
+    'Elastyczność cenowa popytu', 'Elastyczność dochodowa popytu',
+    'Mieszana elastyczność cenowa popytu', 'Suma wydatków'
+  ]],
+  [5, [
+    'Dobra doskonale komplementarne', 'Dobra doskonale substytucyjne',
+    'Dobro Giffena', 'Efekt dochodowy', 'Efekt kontekstu',
+    'Efekt substytucyjny', 'Heurystyki', 'Krańcowa stopa substytucji',
+    'Krzywa cena-konsumpcja', 'Krzywa Engla', 'Krzywa obojętności',
+    'Malejąca użyteczność krańcowa', 'Ograniczenie budżetowe',
+    'Praca martwa', 'Praca żywa', 'Społecznie niezbędny czas pracy',
+    'Teoria perspektywy', 'Teoria użyteczności oczekiwanej',
+    'Użyteczność', 'Użyteczność całkowita', 'Użyteczność krańcowa',
+    'Wartość', 'Zbiór wariantów wyboru'
+  ]],
+  [6, [
+    'Długi okres', 'Funkcja produkcji', 'Korzyści (ekonomia) skali',
+    'Koszt', 'Koszt krańcowy', 'Koszty jawne', 'Koszty stałe',
+    'Koszty ukryte', 'Koszty utopione', 'Koszty zmienne', 'Krótki okres',
+    'Malejąca wydajność krańcowa', 'Niekorzyści (dysekonomia) skali',
+    'Produkt krańcowy', 'Przeciętny koszt całkowity',
+    'Przeciętny koszt stały', 'Przeciętny koszt zmienny',
+    'Skala efektywna produkcji', 'Stałe przychody ze skali',
+    'Utarg całkowity', 'Utarg krańcowy', 'Utarg przeciętny',
+    'Wewnętrzne korzyści skali', 'Zewnętrzne korzyści skali',
+    'Zysk ekonomiczny', 'Zysk księgowy', 'Zysk nadzwyczajny',
+    'Zysk normalny'
+  ]],
+  [7, [
+    'Dobrobyt obiektywny', 'Dobrobyt subiektywny', 'Efektywność',
+    'Efektywność alokacyjna', 'Ekonomia dobrobytu',
+    'Funkcja dobrobytu społecznego', 'Nadwyżka całkowita',
+    'Nadwyżka konsumenta', 'Nadwyżka producenta',
+    'Poprawa w sensie Pareta', 'Równowaga ogólna',
+    'Skłonność do płacenia', 'Sprawiedliwość', 'Zawodność rynku'
+  ]],
+  [8, [
+    'Cena maksymalna', 'Cena minimalna', 'Podatek kwotowy',
+    'Podatek procentowy', 'Rozkład ciężaru opodatkowania', 'Subwencja'
+  ]],
+  [9, [
+    'Krańcowa stopa podatkowa', 'Podatek progresywny',
+    'Podatek proporcjonalny (liniowy)', 'Podatek regresywny',
+    'Podatek ryczałtowy (pogłówny)', 'Podatki bezpośrednie',
+    'Podatki pośrednie', 'Przeciętna stopa podatkowa',
+    'Sprawiedliwość pionowa', 'Sprawiedliwość pozioma',
+    'Zasada korzyści', 'Zasada zdolności do płacenia',
+    'Zbędna strata społeczna'
+  ]],
+  [10, [
+    'Analiza kosztów i korzyści', 'Dobra klubowe', 'Dobra prywatne',
+    'Dobra publiczne', 'Dobra społecznie niepożądane',
+    'Dobra społecznie pożądane', 'Dobro rywalizacyjne',
+    'Dobro zastrzegalne', 'Problem gapowicza',
+    'Tragedia wspólnego pastwiska', 'Zasoby wspólne'
+  ]],
+  [11, [
+    'Efekt racjonalnej ignorancji', 'Efekt wąskich interesów',
+    'Efekt zewnętrzny', 'Interes publiczny',
+    'Internalizacja efektu zewnętrznego',
+    'Koalicja koniunkturalna', 'Koszt krańcowy redukcji zanieczyszczeń',
+    'Koszty transakcyjne', 'Kumoterstwo',
+    'Negatywny efekt zewnętrzny', 'Podatek Pigou', 'Pogoń za rentą',
+    'Pozycja względna', 'Pozycjonalny efekt zewnętrzny',
+    'Pozycjonalny wyścig zbrojeń', 'Pozytywny efekt zewnętrzny',
+    'Prawa własności', 'Proces negocjacji', 'Sektor prywatny',
+    'Sektor publiczny', 'Teoria wyboru publicznego',
+    'Twierdzenie Coase’a', 'Zawodność państwa'
+  ]],
+  [12, [
+    'Agent', 'Asymetria informacji', 'Cykl życia', 'Dochód permanentny',
+    'Efekt posiadania', 'Negatywna selekcja', 'Odsiew',
+    'Ograniczona racjonalność', 'Płaca godziwa', 'Pokusa nadużycia',
+    'Pryncypał', 'Racjonalne zachowanie', 'Satysfakcjonalista',
+    'Sygnalizacja', 'Teoria dochodu permanentnego', 'Wybór międzyokresowy'
+  ]],
+  [13, [
+    'Izokoszta', 'Izokwanta produkcji',
+    'Krańcowa stopa substytucji technicznej'
+  ]],
+  [14, [
+    'Bariery wejścia', 'Doskonałe różnicowanie ceny',
+    'Konkurencja niedoskonała', 'Monopol', 'Monopol naturalny',
+    'Monopolista', 'Nieefektywność typu X', 'Patent', 'Prawa autorskie',
+    'Prywatyzacja', 'Różnicowanie cen', 'Siła rynkowa', 'Synergia'
+  ]],
+  [15, [
+    'Branding', 'Cena zaporowa', 'Ekonomia zakresu',
+    'Konkurencja monopolistyczna', 'Mnożenie marek',
+    'Przewaga konkurencyjna', 'Rynek kontestowalny', 'Segment rynku',
+    'Strategia cen drapieżnych (niszczycielskich)',
+    'Subsydiowanie krzyżowe'
+  ]],
+  [16, [
+    'Dylemat więźnia', 'Gra pozycyjna', 'Kartel', 'Macierz wypłat',
+    'Oligopol', 'Równowaga Nasha', 'Strategia dominująca',
+    'Teoria gier', 'Udział w rynku', 'Wskaźnik koncentracji',
+    'Zmowa', 'Zmowa milcząca'
+  ]],
+  [17, [
+    'Dochód transferowy', 'Dyskryminacja', 'Kapitał', 'Kapitał ludzki',
+    'Krańcowy przychód z zasobu', 'Monopson', 'Płaca efektywnościowa',
+    'Popyt pochodny', 'Praca', 'Produkt krańcowy pracy',
+    'Renta ekonomiczna', 'Strajk', 'Wartość produktu krańcowego',
+    'Ziemia', 'Zróżnicowanie kompensacyjne', 'Związek zawodowy'
+  ]],
+  [18, [
+    'Krzywa Lorenza', 'Liberalizm', 'Libertarianizm',
+    'Mobilność ekonomiczna', 'Płaca minimalna', 'Pomoc społeczna',
+    'Próg ubóstwa', 'Reguła maksyminu', 'Stopa ubóstwa',
+    'Ubóstwo bezwzględne', 'Ubóstwo względne',
+    'Ujemny podatek dochodowy', 'Utylitaryzm', 'Współczynnik Giniego',
+    'Zasiłek rzeczowy'
+  ]],
+  [19, [
+    'Arbitraż', 'Cena światowa', 'Cło', 'Eksport',
+    'Granica możliwości produkcyjnych', 'Hipoteza Prebischa-Singera',
+    'Import', 'Kontyngent przywozowy', 'Koszt alternatywny',
+    'Przewaga absolutna', 'Przewaga komparatywna'
+  ]]
+].flatMap(([chapter, terms]) => terms.map(term => [term, chapter]))));
