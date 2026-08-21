@@ -78,7 +78,13 @@ const polishCount = (number, one, few, many) => {
 function loadRuntimeNotifications() {
   try {
     const value = JSON.parse(localStorage.getItem(notificationStorageKey) || '[]');
-    return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string').slice(0, 30) : [];
+    return Array.isArray(value) ? value
+      .filter(item => item && typeof item.id === 'string')
+      .filter(item => !(
+        item.type === 'info'
+        && (item.title === 'Włączono: Mikroekonomia' || item.title === 'Włączono: Makroekonomia')
+      ))
+      .slice(0, 30) : [];
   } catch {
     return [];
   }
@@ -1049,7 +1055,7 @@ function applySubjectUi() {
   });
 }
 
-function switchSubject(nextSubject, { initial = false } = {}) {
+function switchSubject(nextSubject) {
   if (!subjectCatalog[nextSubject]) return;
   activeSubject = nextSubject;
   try { localStorage.setItem(subjectStorageKey, activeSubject); } catch {}
@@ -1078,11 +1084,6 @@ function switchSubject(nextSubject, { initial = false } = {}) {
   updateProgress();
   startQuiz();
   startTest();
-  if (!initial) addNotification({
-    title: `Włączono: ${subjectData().label}`,
-    message: 'Punkty, ranga i miejsce w rankingu pozostają wspólne dla obu modułów.',
-    type: 'info'
-  });
 }
 
 function switchMode(mode) {
@@ -2253,7 +2254,7 @@ document.addEventListener('keydown', event => {
   }
 });
 
-switchSubject(activeSubject, { initial: true });
+switchSubject(activeSubject);
 renderNotifications();
 updateStudyTimer();
 initializeCloud();
