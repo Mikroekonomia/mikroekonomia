@@ -22,7 +22,7 @@ const siteUpdateNotifications = [
     id: 'update-summaries-ranking-2026-08-17',
     type: 'update',
     title: 'Streszczenia i szybszy dostęp do rankingu',
-    message: 'Każdy z 19 rozdziałów ma teraz krótkie streszczenie, a ranking znajdziesz bezpośrednio w menu.',
+    message: 'Każdy rozdział ma teraz krótkie streszczenie, a ranking znajdziesz bezpośrednio w menu.',
     createdAt: '2026-08-17T21:30:00+02:00'
   },
   {
@@ -47,7 +47,7 @@ const ranks = [
   { name: 'Analityk', threshold: 300, emblem: 'III' },
   { name: 'Ekonomista', threshold: 700, emblem: 'IV' },
   { name: 'Strateg', threshold: 1200, emblem: 'V' },
-  { name: 'Mistrz mikroekonomii', threshold: 2000, emblem: 'VI' },
+  { name: 'Mistrz ekonomii', threshold: 2000, emblem: 'VI' },
   { name: 'Olimpijczyk', threshold: 3500, emblem: 'VII' }
 ];
 
@@ -992,11 +992,11 @@ const subjectUiCopy = {
     ]
   },
   macro: {
-    title: 'Makroekonomia · Ekonomia',
-    eyebrow: 'MAKROEKONOMIA · GOSPODARKA · POLITYKA',
+    title: 'Makroekonomia · Mankiw i Taylor',
+    eyebrow: 'MANKIW · TAYLOR · MAKROEKONOMIA',
     hero: 'Fiszki, quizy, testy, streszczenia i wzory z makroekonomii — od PKB i inflacji po politykę fiskalną oraz pieniężną.',
     overviewTitle: 'Makroekonomia w jednym miejscu.',
-    overview: 'Autorskie opracowanie prowadzi przez 13 rozdziałów: pomiar gospodarki, wzrost, rynek pracy, pieniądz, gospodarkę otwartą i stabilizację.',
+    overview: 'Materiał jest uporządkowany zgodnie z 18 rozdziałami i 6 częściami przesłanego wydania. Pojęcia ze słownika są przypisane do rozdziałów, w których zostały omówione.',
     answerPlaceholder: 'Np. czym CPI różni się od deflatora PKB?',
     prompts: [
       ['Czym CPI różni się od deflatora PKB?', 'CPI a deflator'],
@@ -1029,15 +1029,15 @@ function applySubjectUi() {
   $('#homeChapterCount').textContent = `${data.chapters.length} rozdziałów`;
   $('#homeChapterDescription').textContent = activeSubject === 'micro'
     ? 'Zakres i streszczenia zachowują kolejność przesłanego wydania.'
-    : 'Zakres obejmuje najważniejsze mechanizmy gospodarki i polityki stabilizacyjnej.';
+    : 'Zakres i streszczenia zachowują kolejność przesłanego wydania.';
   $('#flashcardsEyebrow').textContent = `ZAGADNIENIA · ${data.chapters.length} ROZDZIAŁÓW · ${data.label.toLocaleUpperCase('pl-PL')}`;
   $('#quizEyebrow').textContent = `QUIZ · ${data.label.toLocaleUpperCase('pl-PL')}`;
   $('#testEyebrow').textContent = `TEST PISEMNY · ${data.label.toLocaleUpperCase('pl-PL')}`;
-  $('#scopeEyebrow').textContent = activeSubject === 'micro' ? 'SPIS TREŚCI I OPRACOWANIA' : 'AUTORSKI PROGRAM MAKROEKONOMII';
+  $('#scopeEyebrow').textContent = 'SPIS TREŚCI I OPRACOWANIA';
   $('#scopeMeta').innerHTML = `<span id="scopeTopicCount">0</span> tematów · ${data.chapters.length} rozdziałów · ${parts} części`;
   $('#conceptsIntro').textContent = activeSubject === 'micro'
     ? 'Hasła są uporządkowane według rozdziałów i służą jako materiał do powtórki. Skorzystaj z wyszukiwarki, aby szybko znaleźć pojęcie.'
-    : 'Definicje w tym module są samodzielnymi parafrazami i autorskimi objaśnieniami pojęć makroekonomicznych.';
+    : 'Hasła ze słownika książki są uporządkowane według rozdziałów, w których pojawiają się w materiale. Skorzystaj z wyszukiwarki, aby szybko znaleźć pojęcie.';
   $('#appMenuSubject').textContent = data.label.toLocaleUpperCase('pl-PL');
   $('#answerSearch').placeholder = copy.answerPlaceholder;
   $('#answerSearchLabel').textContent = `Wpisz pytanie z ${activeSubject === 'micro' ? 'mikroekonomii' : 'makroekonomii'}`;
