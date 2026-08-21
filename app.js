@@ -8,6 +8,7 @@ const boostDurationMs = 30 * 60 * 1000;
 const notificationStorageKey = 'mankiw-taylor-notifications-v1';
 const notificationReadStorageKey = 'mankiw-taylor-notifications-read-v1';
 const flashcardDirectionStorageKey = 'mankiw-taylor-flashcard-direction-v1';
+const subjectStorageKey = 'ekonomia-active-subject-v1';
 
 const siteUpdateNotifications = [
   {
@@ -255,6 +256,12 @@ let testRewardGranted = false;
 let testBasePoints = 0;
 let runtimeNotifications = loadRuntimeNotifications();
 let readNotificationIds = loadReadNotificationIds();
+let activeSubject = 'micro';
+try {
+  activeSubject = localStorage.getItem(subjectStorageKey) === 'macro' ? 'macro' : 'micro';
+} catch {
+  activeSubject = 'micro';
+}
 
 const normalizeText = value => String(value)
   .toLocaleLowerCase('pl-PL')
@@ -268,7 +275,35 @@ const searchTokens = value => normalizeText(value)
   .split(/\s+/)
   .filter(token => token.length > 2 && !['jak', 'czy', 'dla', 'oraz', 'jest', 'sie', 'tego', 'ktory', 'ktore', 'czym'].includes(token));
 
-const chapterByNumber = number => bookChapters.find(chapter => chapter.number === Number(number));
+const subjectCatalog = {
+  micro: {
+    id: 'micro',
+    label: 'Mikroekonomia',
+    mark: 'μ',
+    chapters: bookChapters,
+    concepts: bookConcepts,
+    outline: fullBookOutline,
+    guides: chapterGuides,
+    formulas: formulaCatalog,
+    conceptAssignments: conceptChapterAssignments
+  },
+  macro: {
+    id: 'macro',
+    label: 'Makroekonomia',
+    mark: 'M',
+    chapters: macroBookChapters,
+    concepts: macroBookConcepts,
+    outline: macroFullBookOutline,
+    guides: macroChapterGuides,
+    formulas: macroFormulaCatalog,
+    conceptAssignments: Object.fromEntries(macroBookConcepts.map(item => [item.term, item.chapter]))
+  }
+};
+
+const subjectData = (subject = activeSubject) => subjectCatalog[subject] || subjectCatalog.micro;
+const chapterByNumber = (number, subject = activeSubject) => subjectData(subject).chapters.find(chapter => chapter.number === Number(number));
+const currentStudyCards = () => studyCards.filter(item => item.subject === activeSubject);
+const currentAnswerEntries = () => allAnswerEntries.filter(item => item.subject === activeSubject);
 
 const topicExplanationRules = [
   { chapter: 1, terms: ['koszt alternatywny'], answer: 'Koszt alternatywny to wartość najlepszej niewybranej możliwości. Oceniając decyzję, porównuje się korzyść z wybranego działania z tym, z czego trzeba zrezygnować.' },
@@ -320,20 +355,20 @@ const topicExplanationRules = [
   { chapter: 19, terms: ['kontyngent'], answer: 'Kontyngent ogranicza ilość importu. Podobnie jak cło podnosi cenę krajową i powoduje stratę dobrobytu, ale zamiast dochodu podatkowego tworzy rentę kontyngentową dla posiadaczy uprawnień importowych.' }
 ];
 
-function explanationForOutlineTopic(topic, chapterNumber) {
-  const guide = chapterGuides.find(item => item.number === chapterNumber);
+function explanationForOutlineTopic(topic, chapterNumber, data = subjectData()) {
+  const guide = data.guides.find(item => item.number === chapterNumber);
   const normalizedTopic = normalizeText(topic);
-  const directRule = topicExplanationRules.find(rule => rule.chapter === chapterNumber
+  const directRule = data.id === 'micro' && topicExplanationRules.find(rule => rule.chapter === chapterNumber
     && rule.terms.every(term => normalizedTopic.includes(normalizeText(term))));
   if (directRule) return directRule.answer;
   const topicTokens = searchTokens(topic);
   const candidates = [
     ...guide.qa.map(([title, answer]) => ({ title, answer })),
-    ...formulaCatalog.filter(item => item.chapter === chapterNumber).map(item => ({
+    ...data.formulas.filter(item => item.chapter === chapterNumber).map(item => ({
       title: item.name,
       answer: `${item.formula}. ${item.use} ${item.variables}`
     })),
-    ...bookConcepts.map(item => ({ title: item.term, answer: item.definition }))
+    ...data.concepts.map(item => ({ title: item.term, answer: item.definition }))
   ];
   const ranked = candidates.map(candidate => {
     const title = normalizeText(candidate.title);
@@ -349,56 +384,78 @@ function explanationForOutlineTopic(topic, chapterNumber) {
     : `${guide.overview} Temat „${topic}” należy do tego mechanizmu i należy analizować go przy założeniach opisanych w rozdziale.`;
 }
 
-const allAnswerEntries = [
-  ...chapterGuides.flatMap(guide => guide.qa.map(([question, answer]) => ({
+function buildAnswerEntries(data) {
+  return [
+  ...data.guides.flatMap(guide => guide.qa.map(([question, answer]) => ({
     type: 'Odpowiedź',
+    subject: data.id,
     chapter: guide.number,
     title: question,
     answer,
-    context: chapterByNumber(guide.number)?.title || ''
+    context: chapterByNumber(guide.number, data.id)?.title || ''
   }))),
-  ...formulaCatalog.map(item => ({
+  ...data.formulas.map(item => ({
     type: 'Wzór',
+    subject: data.id,
     chapter: item.chapter,
     title: `Jak obliczyć: ${item.name}?`,
     answer: `${item.formula}. ${item.use} ${item.variables}`,
     context: item.group
   })),
-  ...fullBookOutline.flatMap(outline => outline.topics.map(topic => ({
+  ...data.outline.flatMap(outline => outline.topics.map(topic => ({
     type: 'Zakres',
+    subject: data.id,
     chapter: outline.number,
     title: topic,
-    answer: explanationForOutlineTopic(topic, outline.number),
-    context: chapterByNumber(outline.number)?.title || ''
+    answer: explanationForOutlineTopic(topic, outline.number, data),
+    context: chapterByNumber(outline.number, data.id)?.title || ''
   }))),
-  ...bookConcepts.map(item => {
-    const chapter = inferConceptChapter(item);
+  ...data.concepts.map(item => {
+    const chapter = inferConceptChapter(item, data.id);
     return {
     type: 'Pojęcie',
+    subject: data.id,
     chapter,
     title: `Co oznacza „${item.term}”?`,
     answer: item.definition,
-    context: chapterByNumber(chapter)?.title || 'Słownik pojęć'
+    context: chapterByNumber(chapter, data.id)?.title || 'Słownik pojęć'
     };
   })
-];
-
-function inferConceptChapter(concept) {
-  return conceptChapterAssignments[concept.term] ?? null;
+  ];
 }
 
-const studyCards = bookConcepts.map((item, index) => {
-  const chapter = inferConceptChapter(item);
-  const chapterData = chapterByNumber(chapter);
+const allAnswerEntries = [
+  ...buildAnswerEntries(subjectCatalog.micro),
+  ...buildAnswerEntries(subjectCatalog.macro)
+];
+
+function inferConceptChapter(concept, subject = activeSubject) {
+  return concept.chapter ?? subjectData(subject).conceptAssignments[concept.term] ?? null;
+}
+
+const studyCards = [
+  ...bookConcepts.map((item, index) => {
+  const chapter = inferConceptChapter(item, 'micro');
   return {
     id: `concept-${index}`,
+    subject: 'micro',
     chapter,
     term: item.term,
     type: 'Zagadnienie',
     front: item.note ? `${item.term} (${item.note})` : item.term,
     back: item.definition
   };
-});
+  }),
+  ...macroBookConcepts.map((item, index) => ({
+    id: `macro-concept-${index}`,
+    subject: 'macro',
+    chapter: inferConceptChapter(item, 'macro'),
+    term: item.term,
+    type: 'Zagadnienie',
+    front: item.note ? `${item.term} (${item.note})` : item.term,
+    back: item.definition
+  }))
+];
 
 function persistLocalProgress() {
   localStorage.setItem(storageKey, JSON.stringify(progress));
@@ -467,8 +524,11 @@ function updateProgress() {
   progress.mastered = [...new Set(progress.mastered)].filter(id => validIds.has(id));
   progress.starred = [...new Set(progress.starred)].filter(id => validIds.has(id));
   progress.awardedFlashcards = [...new Set(progress.awardedFlashcards)].filter(id => validIds.has(id));
-  const mastered = progress.mastered.length;
-  const total = studyCards.length;
+  const subjectCards = currentStudyCards();
+  const subjectCardIds = new Set(subjectCards.map(item => item.id));
+  const mastered = progress.mastered.filter(id => subjectCardIds.has(id)).length;
+  const total = subjectCards.length;
+  const data = subjectData();
   const masteryPercent = total ? Math.round((mastered / total) * 100) : 0;
   const rankIndex = rankIndexForPoints(progress.points);
   const rank = ranks[rankIndex];
@@ -480,11 +540,11 @@ function updateProgress() {
 
   $('#masteredCount').textContent = mastered;
   $('#totalCards').textContent = total;
-  $('#starredCount').textContent = progress.starred.length;
-  $('#heroConceptCount').textContent = bookConcepts.length;
-  $('#homeConceptCount').textContent = bookConcepts.length;
-  $('#heroTopicCount').textContent = fullBookOutline.reduce((sum, chapter) => sum + chapter.topics.length, 0);
-  $('#heroFormulaCount').textContent = formulaCatalog.length;
+  $('#starredCount').textContent = progress.starred.filter(id => subjectCardIds.has(id)).length;
+  $('#heroConceptCount').textContent = data.concepts.length;
+  $('#homeConceptCount').textContent = data.concepts.length;
+  $('#heroTopicCount').textContent = data.outline.reduce((sum, chapter) => sum + chapter.topics.length, 0);
+  $('#heroFormulaCount').textContent = data.formulas.length;
   $('#masteryBar').style.width = `${masteryPercent}%`;
   $('#masteryPercent').textContent = `${masteryPercent}%`;
   $('#topPoints').textContent = progress.points;
@@ -625,15 +685,14 @@ function updateAccountUi() {
 
 function updateAuthGate({ closeAfterUnlock = false } = {}) {
   const locked = !currentUser;
-  document.body.classList.toggle('auth-locked', locked);
+  document.body.classList.remove('auth-locked');
   document.querySelectorAll('.topbar, main, footer').forEach(element => {
-    element.inert = locked;
-    element.toggleAttribute('inert', locked);
-    if (locked) element.setAttribute('aria-hidden', 'true');
-    else element.removeAttribute('aria-hidden');
+    element.inert = false;
+    element.removeAttribute('inert');
+    element.removeAttribute('aria-hidden');
   });
-  $('#authClose').hidden = locked;
-  $('#authBackdrop').setAttribute('aria-label', locked ? 'Logowanie wymagane' : 'Zamknij okno konta');
+  $('#authClose').hidden = false;
+  $('#authBackdrop').setAttribute('aria-label', 'Zamknij okno konta');
   if (locked) {
     if (document.body.classList.contains('focus-mode')) exitFocusMode();
     setAppMenu(false, { returnFocus: false });
@@ -917,8 +976,118 @@ function persistStudyTime() {
   unsavedStudySeconds = 0;
 }
 
+const subjectUiCopy = {
+  micro: {
+    title: 'Mikroekonomia · Mankiw i Taylor',
+    eyebrow: 'MANKIW · TAYLOR · MIKROEKONOMIA',
+    hero: 'Fiszki, quizy, testy, streszczenia i wzory z mikroekonomii. Otwórz menu, wybierz rozdział i zacznij.',
+    overviewTitle: 'Mikroekonomia w jednym miejscu.',
+    overview: 'Materiał jest uporządkowany zgodnie z 19 rozdziałami przesłanego wydania. Możesz uczyć się pojęć, sprawdzać wiedzę i szybko wracać do streszczeń.',
+    answerPlaceholder: 'Np. dlaczego podatek tworzy stratę społeczną?',
+    prompts: [
+      ['Jak znaleźć równowagę rynkową?', 'Równowaga rynkowa'],
+      ['Kto ponosi ciężar podatku?', 'Ciężar podatku'],
+      ['Jak monopol wybiera cenę i ilość?', 'Monopol'],
+      ['Dlaczego handel przynosi korzyści?', 'Handel']
+    ]
+  },
+  macro: {
+    title: 'Makroekonomia · Ekonomia',
+    eyebrow: 'MAKROEKONOMIA · GOSPODARKA · POLITYKA',
+    hero: 'Fiszki, quizy, testy, streszczenia i wzory z makroekonomii — od PKB i inflacji po politykę fiskalną oraz pieniężną.',
+    overviewTitle: 'Makroekonomia w jednym miejscu.',
+    overview: 'Autorskie opracowanie prowadzi przez 13 rozdziałów: pomiar gospodarki, wzrost, rynek pracy, pieniądz, gospodarkę otwartą i stabilizację.',
+    answerPlaceholder: 'Np. czym CPI różni się od deflatora PKB?',
+    prompts: [
+      ['Czym CPI różni się od deflatora PKB?', 'CPI a deflator'],
+      ['Co powoduje inflację w długim okresie?', 'Inflacja'],
+      ['Jak działa mnożnik wydatków?', 'Mnożnik'],
+      ['Jak podwyżka stóp wpływa na gospodarkę?', 'Polityka pieniężna']
+    ]
+  }
+};
+
+function applySubjectUi() {
+  const data = subjectData();
+  const copy = subjectUiCopy[activeSubject];
+  const parts = new Set(data.chapters.map(chapter => `${chapter.part}:${chapter.partTitle}`)).size;
+  document.title = copy.title;
+  document.body.dataset.subject = activeSubject;
+  document.body.classList.toggle('macro-active', activeSubject === 'macro');
+  document.querySelectorAll('[data-subject]').forEach(button => {
+    const selected = button.dataset.subject === activeSubject;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  $('#brandMark').textContent = data.mark;
+  $('#brandName').innerHTML = `${activeSubject === 'micro' ? 'mikroekonomia' : 'makroekonomia'}<span class="muted-dot">.</span>`;
+  $('.brand').setAttribute('aria-label', `${data.label} – strona główna`);
+  $('#heroEyebrow').textContent = copy.eyebrow;
+  $('#heroCopy').textContent = copy.hero;
+  $('#homeOverviewTitle').textContent = copy.overviewTitle;
+  $('#homeOverviewCopy').textContent = copy.overview;
+  $('#homeChapterCount').textContent = `${data.chapters.length} rozdziałów`;
+  $('#homeChapterDescription').textContent = activeSubject === 'micro'
+    ? 'Zakres i streszczenia zachowują kolejność przesłanego wydania.'
+    : 'Zakres obejmuje najważniejsze mechanizmy gospodarki i polityki stabilizacyjnej.';
+  $('#flashcardsEyebrow').textContent = `ZAGADNIENIA · ${data.chapters.length} ROZDZIAŁÓW · ${data.label.toLocaleUpperCase('pl-PL')}`;
+  $('#quizEyebrow').textContent = `QUIZ · ${data.label.toLocaleUpperCase('pl-PL')}`;
+  $('#testEyebrow').textContent = `TEST PISEMNY · ${data.label.toLocaleUpperCase('pl-PL')}`;
+  $('#scopeEyebrow').textContent = activeSubject === 'micro' ? 'SPIS TREŚCI I OPRACOWANIA' : 'AUTORSKI PROGRAM MAKROEKONOMII';
+  $('#scopeMeta').innerHTML = `<span id="scopeTopicCount">0</span> tematów · ${data.chapters.length} rozdziałów · ${parts} części`;
+  $('#conceptsIntro').textContent = activeSubject === 'micro'
+    ? 'Hasła są uporządkowane według rozdziałów i służą jako materiał do powtórki. Skorzystaj z wyszukiwarki, aby szybko znaleźć pojęcie.'
+    : 'Definicje w tym module są samodzielnymi parafrazami i autorskimi objaśnieniami pojęć makroekonomicznych.';
+  $('#appMenuSubject').textContent = data.label.toLocaleUpperCase('pl-PL');
+  $('#answerSearch').placeholder = copy.answerPlaceholder;
+  $('#answerSearchLabel').textContent = `Wpisz pytanie z ${activeSubject === 'micro' ? 'mikroekonomii' : 'makroekonomii'}`;
+  document.querySelectorAll('.answer-prompts button').forEach((button, index) => {
+    const prompt = copy.prompts[index];
+    if (!prompt) return;
+    button.dataset.question = prompt[0];
+    button.textContent = prompt[1];
+  });
+}
+
+function switchSubject(nextSubject, { initial = false } = {}) {
+  if (!subjectCatalog[nextSubject]) return;
+  activeSubject = nextSubject;
+  try { localStorage.setItem(subjectStorageKey, activeSubject); } catch {}
+  selectedFlashcardChapter = 'all';
+  selectedQuizChapter = 'all';
+  selectedTestChapter = 'all';
+  selectedAnswerChapter = 'all';
+  selectedMathChapter = 'all';
+  currentCard = 0;
+  showStarredOnly = false;
+  $('#starredFilter').classList.remove('active');
+  $('#starredFilter').setAttribute('aria-pressed', 'false');
+  ['#flashcardChapter', '#quizChapter', '#testChapter', '#answerChapter', '#mathChapter'].forEach(selector => {
+    renderChapterSelect(selector, selector.includes('flashcard') || selector.includes('quiz') || selector.includes('test') ? `Cała ${activeSubject === 'micro' ? 'mikroekonomia' : 'makroekonomia'}` : 'Wszystkie rozdziały');
+  });
+  $('#conceptSearch').value = '';
+  $('#answerSearch').value = '';
+  $('#scopeSearch').value = '';
+  $('#mathSearch').value = '';
+  applySubjectUi();
+  renderCard();
+  renderScope();
+  renderAnswers();
+  renderMath();
+  renderConcepts();
+  updateProgress();
+  startQuiz();
+  startTest();
+  if (!initial) addNotification({
+    title: `Włączono: ${subjectData().label}`,
+    message: 'Punkty, ranga i miejsce w rankingu pozostają wspólne dla obu modułów.',
+    type: 'info'
+  });
+}
+
 function switchMode(mode) {
-  if (!currentUser) {
+  const publicModes = ['home', 'legal'];
+  if (!currentUser && !publicModes.includes(mode)) {
     setAuthModal(true);
     return;
   }
@@ -961,7 +1130,7 @@ function exitFocusMode() {
 }
 
 function filteredCards() {
-  return studyCards.filter(item => {
+  return currentStudyCards().filter(item => {
     const matchesChapter = selectedFlashcardChapter === 'all' || item.chapter === Number(selectedFlashcardChapter);
     const matchesStarred = !showStarredOnly || progress.starred.includes(item.id);
     return matchesChapter && matchesStarred;
@@ -1126,14 +1295,14 @@ function navigateCard(step) {
 }
 
 function quizPool() {
-  return studyCards.filter(item => selectedQuizChapter === 'all' || item.chapter === Number(selectedQuizChapter));
+  return currentStudyCards().filter(item => selectedQuizChapter === 'all' || item.chapter === Number(selectedQuizChapter));
 }
 
 function buildQuizOptions(item) {
   const pool = quizPool().filter(candidate => candidate.id !== item.id);
   const sameTypeAndChapter = pool.filter(candidate => candidate.type === item.type && candidate.chapter === item.chapter);
   const sameType = pool.filter(candidate => candidate.type === item.type && !sameTypeAndChapter.includes(candidate));
-  const globalFallback = studyCards.filter(candidate => candidate.id !== item.id && !pool.includes(candidate));
+  const globalFallback = currentStudyCards().filter(candidate => candidate.id !== item.id && !pool.includes(candidate));
   const distractors = [...shuffle(sameTypeAndChapter), ...shuffle(sameType), ...shuffle(globalFallback)].slice(0, 3);
   return shuffle([item, ...distractors]);
 }
@@ -1250,7 +1419,7 @@ function showResult() {
 }
 
 function testPool() {
-  return studyCards.filter(item => selectedTestChapter === 'all' || item.chapter === Number(selectedTestChapter));
+  return currentStudyCards().filter(item => selectedTestChapter === 'all' || item.chapter === Number(selectedTestChapter));
 }
 
 function startTest() {
@@ -1380,7 +1549,7 @@ function showTestResult() {
 function renderChapterSelect(selector, includeAllLabel) {
   $(selector).innerHTML = [
     `<option value="all">${escapeHtml(includeAllLabel)}</option>`,
-    ...bookChapters.map(chapter => `<option value="${chapter.number}">${chapter.number}. ${escapeHtml(chapter.title)}</option>`)
+    ...subjectData().chapters.map(chapter => `<option value="${chapter.number}">${chapter.number}. ${escapeHtml(chapter.title)}</option>`)
   ].join('');
 }
 
@@ -1405,7 +1574,8 @@ function scoreAnswer(entry, query) {
 
 function renderAnswers() {
   const query = $('#answerSearch').value.trim();
-  const matches = allAnswerEntries
+  const entries = currentAnswerEntries();
+  const matches = entries
     .filter(entry => selectedAnswerChapter === 'all' || entry.chapter === Number(selectedAnswerChapter))
     .map(entry => ({ ...entry, score: scoreAnswer(entry, query) }))
     .filter(entry => !query || entry.score > 0)
@@ -1415,7 +1585,7 @@ function renderAnswers() {
   const chapterLabel = selectedAnswerChapter === 'all' ? '' : ` w rozdziale ${selectedAnswerChapter}`;
   $('#answerCount').textContent = query
     ? `Znaleziono ${matches.length} odpowiedzi${chapterLabel}. Najtrafniejsze wyniki są na początku.`
-    : `Baza obejmuje ${allAnswerEntries.length} odpowiedzi, tematów, definicji i objaśnień wzorów${chapterLabel}.`;
+    : `Baza obejmuje ${entries.length} odpowiedzi, tematów, definicji i objaśnień wzorów${chapterLabel}.`;
   $('#answerResults').innerHTML = visible.length
     ? visible.map(entry => {
       const chapter = entry.chapter ? chapterByNumber(entry.chapter) : null;
@@ -1436,12 +1606,13 @@ function renderAnswers() {
 
 function renderScope() {
   const query = normalizeText($('#scopeSearch').value);
-  const totalTopics = fullBookOutline.reduce((sum, chapter) => sum + chapter.topics.length, 0);
+  const data = subjectData();
+  const totalTopics = data.outline.reduce((sum, chapter) => sum + chapter.topics.length, 0);
   $('#scopeTopicCount').textContent = totalTopics;
 
-  const chapters = fullBookOutline.map(outline => {
+  const chapters = data.outline.map(outline => {
     const chapter = chapterByNumber(outline.number);
-    const guide = chapterGuides.find(item => item.number === outline.number);
+    const guide = data.guides.find(item => item.number === outline.number);
     const headingMatches = normalizeText(`${chapter.partTitle} ${chapter.title}`).includes(query);
     const summaryMatches = normalizeText(`${guide.overview} ${guide.qa.flat().join(' ')}`).includes(query);
     const matchingTopics = query && !headingMatches
@@ -1634,19 +1805,21 @@ function completeFormulaExplanation(item) {
 }
 
 const formulaAnswerEntries = allAnswerEntries.filter(entry => entry.type === 'Wzór');
-formulaCatalog.forEach((item, index) => {
-  if (formulaAnswerEntries[index]) formulaAnswerEntries[index].answer = completeFormulaExplanation(item);
+formulaAnswerEntries.forEach(entry => {
+  const item = subjectData(entry.subject).formulas.find(formula => `Jak obliczyć: ${formula.name}?` === entry.title);
+  if (item) entry.answer = completeFormulaExplanation(item);
 });
 
 function renderMath() {
+  const data = subjectData();
   const query = normalizeText($('#mathSearch').value);
   const chapterFilter = item => selectedMathChapter === 'all' || item.chapter === Number(selectedMathChapter);
   const textFilter = item => !query || normalizeText(Object.values(item).join(' ')).includes(query)
     || searchTokens(query).some(token => normalizeText(Object.values(item).join(' ')).includes(token));
-  const formulas = formulaCatalog.filter(chapterFilter).filter(textFilter);
+  const formulas = data.formulas.filter(chapterFilter).filter(textFilter);
 
-  $('#formulaCount').textContent = formulaCatalog.length;
-  $('#mathCount').textContent = `Wyświetlono ${formulas.length} z ${formulaCatalog.length} zweryfikowanych wzorów.`;
+  $('#formulaCount').textContent = data.formulas.length;
+  $('#mathCount').textContent = `Wyświetlono ${formulas.length} z ${data.formulas.length} zweryfikowanych wzorów.`;
 
   $('#formulaGrid').innerHTML = formulas.length ? formulas.map(item => `
     <article class="formula-card">
@@ -1662,13 +1835,15 @@ function renderMath() {
 }
 
 function renderConcepts() {
+  const data = subjectData();
   const query = $('#conceptSearch').value.trim().toLocaleLowerCase('pl-PL');
-  const items = bookConcepts.map((item, index) => ({ ...item, chapter: studyCards[index]?.chapter })).filter(item => {
+  const cards = currentStudyCards();
+  const items = data.concepts.map((item, index) => ({ ...item, chapter: cards[index]?.chapter ?? item.chapter })).filter(item => {
     const searchable = `${item.term} ${item.note || ''} ${item.definition}`.toLocaleLowerCase('pl-PL');
     return searchable.includes(query);
   });
 
-  $('#conceptCount').textContent = `Wyświetlono ${items.length} z ${bookConcepts.length} zagadnień`;
+  $('#conceptCount').textContent = `Wyświetlono ${items.length} z ${data.concepts.length} zagadnień`;
   $('#conceptGrid').innerHTML = items.length
     ? items.map(item => `
       <article class="concept-card">
@@ -1817,7 +1992,6 @@ function setAuthMode(mode) {
 }
 
 function setAuthModal(open) {
-  if (!open && !currentUser && $('#emailConfirmationPopup').hidden) return;
   if (open) setAppMenu(false, { returnFocus: false });
   $('#authModal').hidden = !open;
   $('#authBackdrop').hidden = !open;
@@ -1982,6 +2156,9 @@ async function handleDeleteAccount() {
 }
 
 $('#appMenuButton').addEventListener('click', () => setAppMenu($('#appMenu').hidden));
+document.querySelectorAll('[data-subject]').forEach(button => {
+  button.addEventListener('click', () => switchSubject(button.dataset.subject));
+});
 $('#appMenuClose').addEventListener('click', () => setAppMenu(false));
 $('#appMenuBackdrop').addEventListener('click', () => setAppMenu(false));
 $('#notificationButton').addEventListener('click', toggleNotificationCenter);
@@ -2076,21 +2253,9 @@ document.addEventListener('keydown', event => {
   }
 });
 
-renderChapterSelect('#flashcardChapter', 'Cała książka');
-renderChapterSelect('#quizChapter', 'Cała książka');
-renderChapterSelect('#testChapter', 'Cała książka');
-renderChapterSelect('#answerChapter', 'Wszystkie rozdziały');
-renderChapterSelect('#mathChapter', 'Wszystkie rozdziały');
-renderCard();
-renderScope();
-renderAnswers();
-renderMath();
-renderConcepts();
+switchSubject(activeSubject, { initial: true });
 renderNotifications();
-updateProgress();
 updateStudyTimer();
-startQuiz();
-startTest();
 initializeCloud();
 
 window.setInterval(tickStudyTime, 1000);
